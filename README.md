@@ -281,9 +281,7 @@ Verifies backend operations, SQLite database file availability, and storage dire
   {
     "status": "healthy",
     "app": "LUNA API",
-    "database_initialized": true,
-    "database_path": "c:\\Users\\ADMIN\\Desktop\\community\\local-data\\database\\luna.db",
-    "books_directory": "c:\\Users\\ADMIN\\Desktop\\community\\local-data\\books"
+    "database_initialized": true
   }
   ```
 
