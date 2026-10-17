@@ -7,9 +7,9 @@ import {
   Bookmark,
   Headphones,
   Sidebar as SidebarIcon,
-  BookOpen,
-  Info
+  BookOpen
 } from 'lucide-react';
+import { getBookPdfUrl } from '../services/api';
 
 export const ReaderPage: React.FC = () => {
   const {
@@ -337,129 +337,58 @@ export const ReaderPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Content Canvas */}
-        <div className="reader-canvas">
-          <div className={`reader-page-sheet theme-${readerTheme}`}>
-            {/* Honest PDF preview indicator bar inside reader */}
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 8,
-                padding: '8px 12px',
-                borderRadius: 'var(--radius-sm)',
-                backgroundColor: 'rgba(0, 0, 0, 0.15)',
-                border: '1px dashed rgba(129, 140, 248, 0.4)',
-                marginBottom: '32px',
-                fontSize: '11.5px',
-                color: 'var(--text-muted)',
-              }}
+        {/* Actual PDF document, served by the local FastAPI backend. */}
+        <div
+          className="reader-canvas"
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            minHeight: 0,
+            overflow: 'hidden',
+          }}
+        >
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 12,
+              flexWrap: 'wrap',
+              padding: '10px 16px',
+              borderBottom: '1px solid var(--border-subtle)',
+              backgroundColor: 'var(--bg-card)',
+              color: 'var(--text-secondary)',
+              fontSize: '12px',
+            }}
+          >
+            <span>
+              Reading the original PDF: <strong>{activeBook.originalFilename}</strong>
+            </span>
+            <a
+              href={getBookPdfUrl(activeBook.id)}
+              target="_blank"
+              rel="noreferrer"
+              className="btn btn-sm btn-ghost"
+              style={{ textDecoration: 'none' }}
             >
-              <Info size={14} style={{ color: 'var(--accent-primary)', flexShrink: 0 }} />
-              <span>
-                <strong>Reader Preview:</strong> Document "{activeBook.originalFilename}" from local database. Offline PDF rendering will parse binary pages directly in subsequent phase.
-              </span>
-            </div>
-
-            {/* Book Meta Header */}
-            <div
-              className="reader-page-header"
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                fontSize: '11px',
-                textTransform: 'uppercase',
-                letterSpacing: '0.08em',
-                color: '#6b7280',
-                paddingBottom: '20px',
-                borderBottom: '1px solid rgba(128, 128, 128, 0.2)',
-                marginBottom: '40px',
-              }}
-            >
-              <span>{activeBook.title}</span>
-              <span>Chapter {activeChapter?.number || 1}</span>
-            </div>
-
-            {/* Chapter Heading */}
-            <h1
-              style={{
-                fontFamily: 'var(--font-serif)',
-                fontSize: `${readerFontSize * 1.75}px`,
-                lineHeight: 1.25,
-                fontWeight: 600,
-                marginBottom: '12px',
-                letterSpacing: '-0.01em',
-              }}
-            >
-              {activeChapter?.title || activeBook.title}
-            </h1>
-
-            <div
-              className="reader-meta-caption"
-              style={{
-                fontSize: '13px',
-                color: '#9ca3af',
-                marginBottom: '32px',
-                fontStyle: 'italic',
-              }}
-            >
-              File: {activeBook.originalFilename} • Page {readerPage}
-            </div>
-
-            {/* Chapter Body Content with Serif reading typography */}
-            <div
-              style={{
-                fontFamily: 'var(--font-serif)',
-                fontSize: `${readerFontSize}px`,
-                lineHeight: 1.8,
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '24px',
-              }}
-            >
-              {activeChapter?.sampleContent && activeChapter.sampleContent.length > 0 ? (
-                activeChapter.sampleContent.map((paragraph: string, idx: number) => (
-                  <p key={idx} style={{ textIndent: idx > 0 ? '1.5em' : '0' }}>
-                    {paragraph}
-                  </p>
-                ))
-              ) : (
-                <p>
-                  This eBook is indexed in the SQLite database at <code>{activeBook.storedPdfPath}</code> with status: <em>{activeBook.extractedTextStatus}</em>. The upcoming PDF parsing pipeline will extract and render text layers directly on this surface.
-                </p>
-              )}
-
-              <blockquote
-                style={{
-                  borderLeft: '3px solid var(--accent-primary)',
-                  paddingLeft: '18px',
-                  margin: '12px 0',
-                  fontStyle: 'italic',
-                  opacity: 0.9,
-                }}
-              >
-                "LUNA offline architecture: All reading states, bookmarks, and book records are stored purely on the local machine."
-              </blockquote>
-            </div>
-
-            {/* Page Footer */}
-            <div
-              className="reader-page-footer"
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                fontSize: '11px',
-                color: '#6b7280',
-                paddingTop: '32px',
-                marginTop: '60px',
-                borderTop: '1px solid rgba(128, 128, 128, 0.2)',
-              }}
-            >
-              <span>LUNA Offline Reader</span>
-              <span>— {readerPage} —</span>
-              <span>100% On-Device</span>
-            </div>
+              Open PDF separately
+            </a>
           </div>
+
+          <iframe
+            key={String(activeBook.id)}
+            title={`PDF reader: ${activeBook.title}`}
+            src={`${getBookPdfUrl(activeBook.id)}#page=${readerPage}&toolbar=0&navpanes=0`}
+            style={{
+              display: 'block',
+              width: '100%',
+              flex: 1,
+              minHeight: '65vh',
+              height: '100%',
+              border: 0,
+              backgroundColor: '#525659',
+            }}
+          />
         </div>
       </div>
     </div>
