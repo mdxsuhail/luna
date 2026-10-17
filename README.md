@@ -61,7 +61,7 @@ Modern eBook and audiobook applications frequently impose proprietary DRM format
 
 ### Implemented and Prototype Capabilities
 
- > Feature labels below distinguish implemented functionality from prototypes. LUNA now displays imported PDFs using the browser's built-in PDF viewer; local text extraction and real text-to-speech playback remain planned.
+ > Feature labels below distinguish implemented functionality from prototypes. LUNA displays imported PDFs using the browser's built-in PDF viewer and now has an on-demand backend endpoint for extracting selectable text from one page. Text-to-speech playback remains planned.
 
 | Capability | Status | Description |
 |---|---|---|
@@ -70,7 +70,7 @@ Modern eBook and audiobook applications frequently impose proprietary DRM format
 | **Local SQLite Persistence** | Working | Relational storage in `local-data/database/luna.db` with parameterized queries and automated directory/schema initialization. |
 | **Path-Traversal Protected Streaming** | Working | PDF binary delivery endpoint (`/api/books/{id}/pdf`) strictly verifies canonical paths inside `local-data/books/` before streaming. |
 | **Library Management UI** | Working | Grid and list catalog views, real-time title/filename search, category filtering, and document details inspection. |
-| **PDF Reader** | Basic PDF viewing implemented | Displays the original imported PDF through the browser's built-in PDF viewer, served by the local FastAPI backend. The page controls request a page via the PDF viewer URL fragment; browser PDF-viewer behavior may vary. Custom PDF.js rendering, extracted-text reading, and persistent bookmarks are not implemented yet. |
+| **PDF Reader** | Basic PDF viewing implemented | Displays the original imported PDF through the browser's built-in PDF viewer, served by the local FastAPI backend. The page controls request a page via the PDF viewer URL fragment; browser PDF-viewer behavior may vary. Custom PDF.js rendering, connecting extracted text to the reader UI, and persistent bookmarks are not implemented yet. |
 | **Audiobook Player Interface** | Prototype | Playback controls currently update UI state only. Real audio playback, local TTS generation, and persistent playback position are not implemented yet. |
 | **Dashboard** | Partial | Library-backed counts can be shown, while activity history and other reading statistics may still be demonstration data. |
 | **Windows Launcher** | Available; verify locally | `start-luna.bat` starts separate backend/frontend windows and waits for ports. It has not been verified on every Windows/PowerShell setup. |
@@ -78,7 +78,7 @@ Modern eBook and audiobook applications frequently impose proprietary DRM format
 ### In-Progress & Planned Features
 
 - **In-Progress (UI-Driven)**: Audiobook playlist creation and manual chapter management are currently operated in the client-side state machine pending dedicated backend playlist persistence endpoints.
-- **Planned**: Automated text extraction pipeline to make PDF page text available to the reader and future audiobook generation.
+- **Partially implemented**: `GET /api/books/{id}/text?page=1` extracts selectable text from one page on demand. It is not yet connected to the Reader UI, does not save extracted text, and cannot OCR scanned pages.
 - **Planned**: Local Text-to-Speech (TTS) engine. The current audiobook controls are a UI prototype and do not produce sound.
 - **Planned (Optional Accessory)**: Experimental USB/Bluetooth synchronization module for external ESP32-based e-paper displays.
 
@@ -528,11 +528,14 @@ You can verify backend routes interactively via Swagger UI:
 
 ## Security & Limitations
 
-- **Local Scope**: LUNA is engineered as a local single-user prototype. It does not implement multi-tenant authentication, user roles, or password hashing.
-- **CORS Protection**: The FastAPI backend permits requests exclusively from local Vite origins (`localhost:5173` and `127.0.0.1:5173`).
-- **Path Traversal Guard**: PDF file retrieval (`/api/books/{id}/pdf`) resolves paths canonicalizing against `local-data/books/` and returns `403 Forbidden` if a requested path traverses outside the designated folder.
-- **Encrypted PDF Handling**: PDFs protected with passwords are automatically detected by `pypdf` and rejected gracefully with an explanatory HTTP 400 error rather than crashing the server.
-- **Database Backup**: Because all metadata is stored in `local-data/database/luna.db`, never delete the `local-data/` folder unless you intend to completely reset your library.
+- **Local-only boundary**: LUNA is a single-user desktop prototype with no login/authentication. Keep the API bound to `127.0.0.1`; do not expose it to a LAN or the internet.
+- **Host and cross-origin checks**: The backend rejects non-loopback Host values and rejects cross-origin state-changing requests when a browser supplies an untrusted Origin. CORS is restricted to the local Vite origins, required methods, and headers. These checks reduce browser-based abuse but do not replace authentication for a network-facing deployment.
+- **Path traversal guard**: PDF streaming and text extraction resolve registered filenames and reject paths or symlinks that escape `local-data/books/`.
+- **Resource limits**: PDF uploads are limited to 50 MB, documents over 20,000 pages are rejected, and one page-text response is capped at 1,000,000 characters. These are guardrails, not a guarantee against every malicious PDF parser denial-of-service.
+- **Reduced diagnostic disclosure**: The health endpoint does not return absolute local filesystem paths.
+- **Dependency checks**: CI runs Python dependency auditing and an npm audit threshold for high-severity production dependencies.
+- **Encrypted PDF handling**: Password-protected PDFs that cannot be unlocked are rejected.
+- **Local data**: Metadata and imported books live in `local-data/`. Back up this folder before making destructive changes.
 
 ---
 
