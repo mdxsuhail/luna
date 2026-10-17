@@ -61,7 +61,7 @@ Modern eBook and audiobook applications frequently impose proprietary DRM format
 
 ### Implemented and Prototype Capabilities
 
- > Feature labels below distinguish implemented functionality from prototypes. LUNA now displays imported PDFs using the browser's built-in PDF viewer; local text extraction and real text-to-speech playback remain planned.
+ > Feature labels below distinguish implemented functionality from prototypes. LUNA displays imported PDFs using the browser's built-in PDF viewer and now has an on-demand backend endpoint for extracting selectable text from one page. Text-to-speech playback remains planned.
 
 | Capability | Status | Description |
 |---|---|---|
@@ -70,7 +70,7 @@ Modern eBook and audiobook applications frequently impose proprietary DRM format
 | **Local SQLite Persistence** | Working | Relational storage in `local-data/database/luna.db` with parameterized queries and automated directory/schema initialization. |
 | **Path-Traversal Protected Streaming** | Working | PDF binary delivery endpoint (`/api/books/{id}/pdf`) strictly verifies canonical paths inside `local-data/books/` before streaming. |
 | **Library Management UI** | Working | Grid and list catalog views, real-time title/filename search, category filtering, and document details inspection. |
-| **PDF Reader** | Basic PDF viewing implemented | Displays the original imported PDF through the browser's built-in PDF viewer, served by the local FastAPI backend. The page controls request a page via the PDF viewer URL fragment; browser PDF-viewer behavior may vary. Custom PDF.js rendering, extracted-text reading, and persistent bookmarks are not implemented yet. |
+| **PDF Reader** | Basic PDF viewing implemented | Displays the original imported PDF through the browser's built-in PDF viewer, served by the local FastAPI backend. The page controls request a page via the PDF viewer URL fragment; browser PDF-viewer behavior may vary. Custom PDF.js rendering, connecting extracted text to the reader UI, and persistent bookmarks are not implemented yet. |
 | **Audiobook Player Interface** | Prototype | Playback controls currently update UI state only. Real audio playback, local TTS generation, and persistent playback position are not implemented yet. |
 | **Dashboard** | Partial | Library-backed counts can be shown, while activity history and other reading statistics may still be demonstration data. |
 | **Windows Launcher** | Available; verify locally | `start-luna.bat` starts separate backend/frontend windows and waits for ports. It has not been verified on every Windows/PowerShell setup. |
@@ -78,7 +78,7 @@ Modern eBook and audiobook applications frequently impose proprietary DRM format
 ### In-Progress & Planned Features
 
 - **In-Progress (UI-Driven)**: Audiobook playlist creation and manual chapter management are currently operated in the client-side state machine pending dedicated backend playlist persistence endpoints.
-- **Planned**: Automated text extraction pipeline to make PDF page text available to the reader and future audiobook generation.
+- **Partially implemented**: `GET /api/books/{id}/text?page=1` extracts selectable text from one page on demand. It is not yet connected to the Reader UI, does not save extracted text, and cannot OCR scanned pages.
 - **Planned**: Local Text-to-Speech (TTS) engine. The current audiobook controls are a UI prototype and do not produce sound.
 - **Planned (Optional Accessory)**: Experimental USB/Bluetooth synchronization module for external ESP32-based e-paper displays.
 
