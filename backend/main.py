@@ -120,24 +120,31 @@ async def protect_local_api(request: Request, call_next):
 
     if request.method == "POST" and request.url.path == "/api/books/import":
         content_length = request.headers.get("content-length")
-        if content_length is not None:
-            try:
-                request_size = int(content_length)
-            except ValueError:
-                return JSONResponse(
-                    status_code=400,
-                    content={"detail": "Invalid Content-Length header."},
-                )
-            if request_size < 0:
-                return JSONResponse(
-                    status_code=400,
-                    content={"detail": "Invalid Content-Length header."},
-                )
-            if request_size > MAX_UPLOAD_REQUEST_BYTES:
-                return JSONResponse(
-                    status_code=413,
-                    content={"detail": "Upload request exceeds the maximum allowed size."},
-                )
+        # Require a declared body size for this local upload endpoint. Otherwise a
+        # chunked/unknown-length request could reach multipart parsing before the
+        # endpoint's streamed file-size check gets a chance to run.
+        if content_length is None:
+            return JSONResponse(
+                status_code=411,
+                content={"detail": "Content-Length is required for PDF uploads."},
+            )
+        try:
+            request_size = int(content_length)
+        except ValueError:
+            return JSONResponse(
+                status_code=400,
+                content={"detail": "Invalid Content-Length header."},
+            )
+        if request_size < 0:
+            return JSONResponse(
+                status_code=400,
+                content={"detail": "Invalid Content-Length header."},
+            )
+        if request_size > MAX_UPLOAD_REQUEST_BYTES:
+            return JSONResponse(
+                status_code=413,
+                content={"detail": "Upload request exceeds the maximum allowed size."},
+            )
 
     return await call_next(request)
 

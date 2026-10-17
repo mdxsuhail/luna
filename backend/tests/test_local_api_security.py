@@ -55,7 +55,7 @@ class LocalApiSecurityTests(unittest.TestCase):
         reader.pages[0].extract_text.return_value = "x" * (MAX_EXTRACTED_TEXT_CHARS + 100)
         self.assertEqual(len(extract_page_text(reader, 1)), MAX_EXTRACTED_TEXT_CHARS)
 
-    def _request(self, method="POST", host="127.0.0.1:8000", origin="http://localhost:5173", content_length=None):
+    def _request(self, method="POST", host="127.0.0.1:8000", origin="http://localhost:5173", content_length=100):
         headers = [(b"host", host.encode("ascii"))]
         if origin is not None:
             headers.append((b"origin", origin.encode("ascii")))
@@ -101,12 +101,16 @@ class LocalApiSecurityTests(unittest.TestCase):
         response = self._run_middleware(self._request(origin="http://localhost:5173"))
         self.assertEqual(response.status_code, 200)
 
+    def test_middleware_rejects_upload_without_content_length(self):
+        response = self._run_middleware(self._request(content_length=None))
+        self.assertEqual(response.status_code, 411)
+
     def test_middleware_rejects_oversized_upload_before_body_parsing(self):
         response = self._run_middleware(self._request(content_length=MAX_UPLOAD_REQUEST_BYTES + 1))
         self.assertEqual(response.status_code, 413)
 
     def test_middleware_rejects_invalid_content_length(self):
-        request = self._request()
+        request = self._request(content_length=None)
         request.scope["headers"].append((b"content-length", b"not-a-number"))
         response = self._run_middleware(request)
         self.assertEqual(response.status_code, 400)
