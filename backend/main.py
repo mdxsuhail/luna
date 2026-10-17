@@ -32,6 +32,15 @@ CHUNK_SIZE = 1024 * 1024  # 1 MB chunk
 logger = logging.getLogger(__name__)
 
 
+def is_path_within_directory(candidate: Path, directory: Path) -> bool:
+    """Return True only when candidate resolves to a path inside directory."""
+    try:
+        candidate.resolve().relative_to(directory.resolve())
+        return True
+    except ValueError:
+        return False
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """
@@ -263,9 +272,7 @@ def get_book_pdf(book_id: int):
     # Use Path.relative_to instead of string-prefix checks. A string-prefix check
     # can mistakenly accept a sibling such as "books-backup" as being inside "books".
     # Resolving first also detects symlinks that point outside the permitted directory.
-    try:
-        target_file.relative_to(books_dir_resolved)
-    except ValueError:
+    if not is_path_within_directory(target_file, books_dir_resolved):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Access denied: invalid file path.",
