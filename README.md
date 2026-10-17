@@ -61,7 +61,7 @@ Modern eBook and audiobook applications frequently impose proprietary DRM format
 
 ### Implemented and Prototype Capabilities
 
-> Feature labels below distinguish backend functionality from interface mockups. The reader and audiobook screens are not yet full PDF rendering or real text-to-speech playback.
+ > Feature labels below distinguish implemented functionality from prototypes. LUNA now displays imported PDFs using the browser's built-in PDF viewer; local text extraction and real text-to-speech playback remain planned.
 
 | Capability | Status | Description |
 |---|---|---|
@@ -70,7 +70,7 @@ Modern eBook and audiobook applications frequently impose proprietary DRM format
 | **Local SQLite Persistence** | Working | Relational storage in `local-data/database/luna.db` with parameterized queries and automated directory/schema initialization. |
 | **Path-Traversal Protected Streaming** | Working | PDF binary delivery endpoint (`/api/books/{id}/pdf`) strictly verifies canonical paths inside `local-data/books/` before streaming. |
 | **Library Management UI** | Working | Grid and list catalog views, real-time title/filename search, category filtering, and document details inspection. |
-| **Reader Interface** | Prototype | Theme, font-size, and page controls are present, but the canvas currently displays placeholder text rather than rendering the imported PDF pages. Bookmarks are session-only. |
+| **PDF Reader** | Basic PDF viewing implemented | Displays the original imported PDF through the browser's built-in PDF viewer, served by the local FastAPI backend. The page controls request a page via the PDF viewer URL fragment; browser PDF-viewer behavior may vary. Custom PDF.js rendering, extracted-text reading, and persistent bookmarks are not implemented yet. |
 | **Audiobook Player Interface** | Prototype | Playback controls currently update UI state only. Real audio playback, local TTS generation, and persistent playback position are not implemented yet. |
 | **Dashboard** | Partial | Library-backed counts can be shown, while activity history and other reading statistics may still be demonstration data. |
 | **Windows Launcher** | Available; verify locally | `start-luna.bat` starts separate backend/frontend windows and waits for ports. It has not been verified on every Windows/PowerShell setup. |
@@ -546,7 +546,7 @@ You can verify backend routes interactively via Swagger UI:
 - [x] Automated Windows startup script (`start-luna.bat`)
 
 ### Next Steps
-- [ ] **Canvas-Based PDF Viewer**: Direct PDF page rendering in the browser using PDF.js to replace the preview mode.
+- [ ] **Custom PDF Rendering**: Replace browser-native PDF viewing with a PDF.js canvas renderer for consistent controls and deeper reading integration.
 - [ ] **Backend Text Extraction**: Worker pipeline to update `extracted_text_status` from `pending` to `complete`, populating page-by-page searchable text.
 - [ ] **Local Text-to-Speech (TTS)**: Integration with local Python TTS libraries (such as Piper or Coqui) for on-device voice generation.
 - [ ] **Reading Progress Sync**: Storing current page numbers and percentage read directly in SQLite.
