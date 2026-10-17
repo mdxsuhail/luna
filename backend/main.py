@@ -10,9 +10,9 @@ from typing import List, Dict, Any
 import uuid
 import logging
 
-from fastapi import FastAPI, UploadFile, File, HTTPException, Query, status
+from fastapi import FastAPI, UploadFile, File, HTTPException, Query, Request, status
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 import pypdf
 
 from database import (
@@ -27,6 +27,8 @@ from database import (
 
 # Configurable maximum file upload size: 50 MB
 MAX_UPLOAD_SIZE_BYTES = 50 * 1024 * 1024  # 50 MB
+MAX_PDF_PAGES = 20_000  # Guard against unexpectedly expensive documents
+MAX_EXTRACTED_TEXT_CHARS = 1_000_000  # Cap a single API response at approximately 1 MB of text
 CHUNK_SIZE = 1024 * 1024  # 1 MB chunk
 
 logger = logging.getLogger(__name__)
@@ -42,10 +44,21 @@ def is_path_within_directory(candidate: Path, directory: Path) -> bool:
 
 
 def extract_page_text(reader: pypdf.PdfReader, page_number: int) -> str:
-    """Extract text from one 1-based PDF page number, returning an empty string if none exists."""
+    """Extract a bounded amount of text from one 1-based PDF page."""
     if page_number < 1 or page_number > len(reader.pages):
         raise ValueError("Page number is outside the document.")
-    return (reader.pages[page_number - 1].extract_text() or "").strip()
+    text = (reader.pages[page_number - 1].extract_text() or "").strip()
+    return text[:MAX_EXTRACTED_TEXT_CHARS]
+
+
+def is_allowed_local_host(host: str | None) -> bool:
+    """Allow only loopback hostnames expected for a local-only installation."""
+    return (host or "").lower() in {"127.0.0.1", "localhost"}
+
+
+def is_allowed_origin(origin: str | None) -> bool:
+    """Check the exact browser origins used by the local Vite frontend."""
+    return origin in {"http://localhost:5173", "http://127.0.0.1:5173"}
 
 
 @asynccontextmanager
@@ -74,10 +87,28 @@ origins = [
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_credentials=False,
+    allow_methods=["GET", "HEAD", "POST", "OPTIONS"],
+    allow_headers=["Accept", "Content-Type"],
 )
+
+
+@app.middleware("http")
+async def protect_local_api(request: Request, call_next):
+    """Reject non-loopback Host headers and cross-origin state-changing requests.
+
+    CORS alone is not CSRF protection: a hostile website may still submit a request
+    even when the browser refuses to expose its response to that website.
+    """
+    if not is_allowed_local_host(request.url.hostname):
+        return JSONResponse(status_code=400, content={"detail": "LUNA accepts requests only through localhost."})
+
+    if request.method in {"POST", "PUT", "PATCH", "DELETE"}:
+        origin = request.headers.get("origin")
+        if origin is not None and not is_allowed_origin(origin):
+            return JSONResponse(status_code=403, content={"detail": "Cross-origin changes are not allowed."})
+
+    return await call_next(request)
 
 
 @app.get("/api/health")
@@ -87,8 +118,6 @@ def health_check() -> Dict[str, Any]:
         "status": "healthy",
         "app": "LUNA API",
         "database_initialized": DB_PATH.exists(),
-        "database_path": str(DB_PATH),
-        "books_directory": str(BOOKS_DIR),
     }
 
 
@@ -156,6 +185,11 @@ async def import_book(file: UploadFile = File(...)) -> Dict[str, Any]:
                     )
 
             page_count = len(reader.pages)
+            if page_count > MAX_PDF_PAGES:
+                raise HTTPException(
+                    status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                    detail=f"PDF exceeds the maximum supported page count of {MAX_PDF_PAGES}.",
+                )
             if page_count == 0:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
@@ -257,7 +291,13 @@ def get_book_page_text(
                     status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                     detail="This PDF is encrypted and its text cannot be extracted.",
                 )
-        if page > len(reader.pages):
+        page_count = len(reader.pages)
+        if page_count > MAX_PDF_PAGES:
+            raise HTTPException(
+                status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                detail=f"PDF exceeds the maximum supported page count of {MAX_PDF_PAGES}.",
+            )
+        if page > page_count:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"Page {page} does not exist. This PDF has {len(reader.pages)} pages.",
@@ -267,7 +307,7 @@ def get_book_page_text(
             "book_id": book_id,
             "title": book["title"],
             "page": page,
-            "page_count": len(reader.pages),
+            "page_count": page_count,
             "text": text,
             "has_text": bool(text),
             "message": None if text else "No selectable text was found on this page. It may be a scanned image.",
