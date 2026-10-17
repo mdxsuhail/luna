@@ -39,7 +39,8 @@ def is_path_within_directory(candidate: Path, directory: Path) -> bool:
     try:
         candidate.resolve().relative_to(directory.resolve())
         return True
-    except ValueError:
+    except (OSError, RuntimeError, ValueError):
+        # Broken symlinks, symlink loops, and invalid relative paths must fail closed.
         return False
 
 
