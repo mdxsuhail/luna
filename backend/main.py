@@ -8,6 +8,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import List, Dict, Any
 import uuid
+import logging
 
 from fastapi import FastAPI, UploadFile, File, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
@@ -27,6 +28,17 @@ from database import (
 # Configurable maximum file upload size: 50 MB
 MAX_UPLOAD_SIZE_BYTES = 50 * 1024 * 1024  # 50 MB
 CHUNK_SIZE = 1024 * 1024  # 1 MB chunk
+
+logger = logging.getLogger(__name__)
+
+
+def is_path_within_directory(candidate: Path, directory: Path) -> bool:
+    """Return True only when candidate resolves to a path inside directory."""
+    try:
+        candidate.resolve().relative_to(directory.resolve())
+        return True
+    except ValueError:
+        return False
 
 
 @asynccontextmanager
@@ -191,10 +203,11 @@ async def import_book(file: UploadFile = File(...)) -> Dict[str, Any]:
         except HTTPException:
             raise
         except Exception as pdf_err:
+            logger.info("PDF parsing failed for uploaded file %r: %s", original_filename, pdf_err)
             destination_path.unlink(missing_ok=True)
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Unable to read or parse PDF document: {str(pdf_err)}",
+                detail="Unable to read this PDF. Check that the file is valid and is not password-protected.",
             )
 
         # Step 5: Save record to SQLite database
@@ -211,22 +224,24 @@ async def import_book(file: UploadFile = File(...)) -> Dict[str, Any]:
                 extracted_text_status="pending",
             )
             return new_book
-        except Exception as db_err:
+        except Exception:
+            logger.exception("Failed to save metadata for uploaded PDF %r", original_filename)
             destination_path.unlink(missing_ok=True)
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Failed to record book metadata in SQLite database: {str(db_err)}",
+                detail="The PDF was received, but LUNA could not save its metadata. Check the backend terminal for details.",
             )
 
     except HTTPException:
         # Re-raise explicit HTTP exceptions after ensuring cleanup
         destination_path.unlink(missing_ok=True)
         raise
-    except Exception as exc:
+    except Exception:
+        logger.exception("Unexpected error while importing PDF %r", original_filename)
         destination_path.unlink(missing_ok=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Unexpected error during PDF import: {str(exc)}",
+            detail="An unexpected error occurred while importing this PDF. Check the backend terminal for details.",
         )
     finally:
         await file.close()
@@ -254,8 +269,10 @@ def get_book_pdf(book_id: int):
     target_file = (BOOKS_DIR / filename_only).resolve()
     books_dir_resolved = BOOKS_DIR.resolve()
 
-    # Path traversal protection check
-    if not str(target_file).startswith(str(books_dir_resolved)):
+    # Use Path.relative_to instead of string-prefix checks. A string-prefix check
+    # can mistakenly accept a sibling such as "books-backup" as being inside "books".
+    # Resolving first also detects symlinks that point outside the permitted directory.
+    if not is_path_within_directory(target_file, books_dir_resolved):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Access denied: invalid file path.",

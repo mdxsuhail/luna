@@ -59,7 +59,9 @@ Modern eBook and audiobook applications frequently impose proprietary DRM format
 
 ## Key Features
 
-### Verified & Implemented Capabilities
+### Implemented and Prototype Capabilities
+
+> Feature labels below distinguish backend functionality from interface mockups. The reader and audiobook screens are not yet full PDF rendering or real text-to-speech playback.
 
 | Capability | Status | Description |
 |---|---|---|
@@ -68,16 +70,16 @@ Modern eBook and audiobook applications frequently impose proprietary DRM format
 | **Local SQLite Persistence** | Working | Relational storage in `local-data/database/luna.db` with parameterized queries and automated directory/schema initialization. |
 | **Path-Traversal Protected Streaming** | Working | PDF binary delivery endpoint (`/api/books/{id}/pdf`) strictly verifies canonical paths inside `local-data/books/` before streaming. |
 | **Library Management UI** | Working | Grid and list catalog views, real-time title/filename search, category filtering, and document details inspection. |
-| **Distraction-Free Reader Interface** | Working | Multi-theme reading environment (**Charcoal**, **Sepia**, **Paper**, **OLED**), font size adjustments (14px–26px), bookmarks, and page navigation. |
-| **Persistent Bottom Audio Player** | Working | Universal audio player dock with play/pause state, interactive position scrubbing, playback speed adjustment (0.75x–2.0x), and voice profile selectors. |
-| **Reading & Library Dashboard** | Working | Live library metrics including catalog size, hours tracked, and storage volume indicators. |
-| **Automated System Launcher** | Working | Windows batch script (`start-luna.bat`) with port collision checks, background process management, and active socket readiness verification. |
+| **Reader Interface** | Prototype | Theme, font-size, and page controls are present, but the canvas currently displays placeholder text rather than rendering the imported PDF pages. Bookmarks are session-only. |
+| **Audiobook Player Interface** | Prototype | Playback controls currently update UI state only. Real audio playback, local TTS generation, and persistent playback position are not implemented yet. |
+| **Dashboard** | Partial | Library-backed counts can be shown, while activity history and other reading statistics may still be demonstration data. |
+| **Windows Launcher** | Available; verify locally | `start-luna.bat` starts separate backend/frontend windows and waits for ports. It has not been verified on every Windows/PowerShell setup. |
 
 ### In-Progress & Planned Features
 
 - **In-Progress (UI-Driven)**: Audiobook playlist creation and manual chapter management are currently operated in the client-side state machine pending dedicated backend playlist persistence endpoints.
-- **Planned**: Automated optical character extraction pipeline (`extracted_text_status`) to convert parsed PDF pages into raw chapter transcripts.
-- **Planned**: Local Text-to-Speech (TTS) synthesis engine to generate offline audiobooks directly from imported book chapters.
+- **Planned**: Automated text extraction pipeline to make PDF page text available to the reader and future audiobook generation.
+- **Planned**: Local Text-to-Speech (TTS) engine. The current audiobook controls are a UI prototype and do not produce sound.
 - **Planned (Optional Accessory)**: Experimental USB/Bluetooth synchronization module for external ESP32-based e-paper displays.
 
 ---
@@ -470,8 +472,11 @@ The resulting assets will be compiled to `frontend/dist/`. To preview the produc
 npm run preview
 ```
 
+### Automated Checks
+GitHub Actions runs backend path-safety unit tests and the frontend TypeScript/Vite production build on pushes and pull requests. Check the Actions tab for the latest result. These checks do not replace a manual end-to-end PDF import test.
+
 ### Backend & API Verification
-Automated test suites (e.g., `pytest`) have not yet been configured in the repository. You can verify backend routes interactively via Swagger UI:
+You can verify backend routes interactively via Swagger UI:
 1. Start the backend: `.venv\Scripts\python.exe -m uvicorn main:app --reload`
 2. Open `http://127.0.0.1:8000/docs` in your browser.
 3. Test `/api/health`, `/api/books`, and `/api/books/import` using FastAPI's interactive testing console.
