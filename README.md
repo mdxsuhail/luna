@@ -15,6 +15,7 @@
 ## Table of Contents
 
 - [Project Overview](#project-overview)
+- [Developer Learning Guide](#developer-learning-guide)
 - [Key Features](#key-features)
 - [System Architecture](#system-architecture)
 - [Technology Stack](#technology-stack)
@@ -56,6 +57,10 @@ Modern eBook and audiobook applications frequently impose proprietary DRM format
 - **Developers & Contributors**: Interested in local-first storage patterns, PDF stream processing, and minimalist React architecture.
 
 ---
+
+## Developer Learning Guide
+
+If you are presenting or maintaining LUNA, use the [learning guide index](docs/README.md) and the numbered guides in [`docs/learning-guide/`](docs/learning-guide/). They explain the architecture, frontend/backend responsibilities, request and file data flow, security controls, tests, and known limitations. The guides are educational explanations; always compare them with the current source code when code changes.
 
 ## Key Features
 
@@ -125,9 +130,9 @@ The repository uses a curated set of dependencies with no external cloud service
 | **Multipart Parser** | python-multipart | `*` | Handles multipart form-data streams for file ingestion without loading entire payloads into RAM. |
 | **Database** | SQLite3 | Native Python | Embedded relational database engine stored at `local-data/database/luna.db`. |
 | **Frontend Framework** | React | `18.3.1` | Declarative UI layer utilizing hooks and custom context state management. |
-| **Language** | TypeScript | `5.6.2` | Static type safety across all frontend components, models, and API adaptors. |
+| **Language** | TypeScript | `package.json` range `^7.0.2` | Static type safety across frontend components, models, and API adaptors. The lockfile pins the installed dependency tree. |
 | **Build Tool & Bundler** | Vite | `5.4.8` | Ultra-fast development server with Hot Module Replacement (HMR) and optimized rollup production bundling. |
-| **Iconography** | Lucide React | `^0.453` | Consistent, accessible SVG icon set. |
+| **Iconography** | Lucide React | `^1.57.0` | Consistent SVG icon set. |
 | **Styling** | Vanilla CSS | CSS3 Tokens | Bespoke glassmorphism design system using native CSS variables (`--bg-primary`, `--accent-emerald`, etc.). |
 
 ---
@@ -471,7 +476,7 @@ npm run preview
 ```
 
 ### Automated Checks
-GitHub Actions runs backend path-safety unit tests and the frontend TypeScript/Vite production build on pushes and pull requests. Check the Actions tab for the latest result. These checks do not replace a manual end-to-end PDF import test.
+GitHub Actions runs backend unit tests, a frontend TypeScript/Vite production build, Python and production npm dependency audits, and Playwright/Chromium responsive-layout checks at 320×568, 375×667, 390×844, 768×1024, and 1280×800. See [the latest workflow runs](https://github.com/mdxsuhail/luna/actions). These checks do not replace physical-device testing or a manual end-to-end PDF import/reading test.
 
 ### Backend & API Verification
 You can verify backend routes interactively via Swagger UI:
@@ -534,12 +539,16 @@ You can verify backend routes interactively via Swagger UI:
 - **Dependency checks**: CI runs Python dependency auditing and an npm audit threshold for high-severity production dependencies.
 - **Encrypted PDF handling**: Password-protected PDFs that cannot be unlocked are rejected.
 - **Local data**: Metadata and imported books live in `local-data/`. Back up this folder before making destructive changes.
+- **Upload framing**: PDF import requires a valid `Content-Length` header and rejects oversized request bodies before multipart parsing. Upload clients that stream with unknown length may receive `411 Length Required`.
+- **No network deployment**: The current host/origin rules are for local development only. Do not publish the FastAPI service or assume these browser checks provide authentication.
 
 ---
 
 ## Roadmap
 
 ### Current Focus
+- [x] GitHub Actions dependency audits and regression checks for backend security boundaries
+- [x] Playwright responsive-layout smoke tests for phone, tablet, and desktop viewport sizes
 - [x] Streamlined local PDF file ingestion and metadata extraction (`pypdf`)
 - [x] SQLite database schema and persistence layer
 - [x] Responsive React + Vite desktop UI with multi-theme reader and persistent audio player
