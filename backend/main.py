@@ -25,11 +25,13 @@ from database import (
     ensure_directories,
 )
 
-# Configurable maximum file upload size: 50 MB
-MAX_UPLOAD_SIZE_BYTES = 50 * 1024 * 1024  # 50 MB
-MAX_PDF_PAGES = 20_000  # Guard against unexpectedly expensive documents
-MAX_EXTRACTED_TEXT_CHARS = 1_000_000  # Cap a single API response at approximately 1 MB of text
-CHUNK_SIZE = 1024 * 1024  # 1 MB chunk
+MAX_UPLOAD_SIZE_BYTES = 50 * 1024 * 1024
+# Allow multipart boundaries/headers while rejecting oversized request bodies before parsing.
+MAX_UPLOAD_REQUEST_BYTES = MAX_UPLOAD_SIZE_BYTES + 1024 * 1024
+MAX_PDF_PAGES = 20_000
+MAX_EXTRACTED_TEXT_CHARS = 1_000_000
+MAX_BOOK_TITLE_CHARS = 300
+CHUNK_SIZE = 1024 * 1024
 
 logger = logging.getLogger(__name__)
 
@@ -40,7 +42,6 @@ def is_path_within_directory(candidate: Path, directory: Path) -> bool:
         candidate.resolve().relative_to(directory.resolve())
         return True
     except (OSError, RuntimeError, ValueError):
-        # Broken symlinks, symlink loops, and invalid relative paths must fail closed.
         return False
 
 
@@ -53,8 +54,16 @@ def extract_page_text(reader: pypdf.PdfReader, page_number: int) -> str:
 
 
 def is_allowed_local_host(host: str | None) -> bool:
-    """Allow only loopback hostnames expected for a local-only installation."""
-    return (host or "").lower() in {"127.0.0.1", "localhost"}
+    """Allow only expected loopback Host values and the default LUNA API port."""
+    if not host:
+        return False
+    normalized = host.strip().lower()
+    return normalized in {
+        "127.0.0.1",
+        "127.0.0.1:8000",
+        "localhost",
+        "localhost:8000",
+    }
 
 
 def is_allowed_origin(origin: str | None) -> bool:
@@ -64,10 +73,7 @@ def is_allowed_origin(origin: str | None) -> bool:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """
-    Application lifespan handler.
-    Initializes local directory structure and SQLite database schema automatically on startup.
-    """
+    """Initialize local directories and the SQLite schema on startup."""
     ensure_directories()
     init_db()
     yield
@@ -80,10 +86,7 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-origins = [
-    "http://localhost:5173",
-    "http://127.0.0.1:5173",
-]
+origins = ["http://localhost:5173", "http://127.0.0.1:5173"]
 
 app.add_middleware(
     CORSMiddleware,
@@ -96,25 +99,52 @@ app.add_middleware(
 
 @app.middleware("http")
 async def protect_local_api(request: Request, call_next):
-    """Reject non-loopback Host headers and cross-origin state-changing requests.
-
-    CORS alone is not CSRF protection: a hostile website may still submit a request
-    even when the browser refuses to expose its response to that website.
-    """
-    if not is_allowed_local_host(request.url.hostname):
-        return JSONResponse(status_code=400, content={"detail": "LUNA accepts requests only through localhost."})
+    """Restrict local API hosts, enforce browser-origin checks, and cap upload bodies."""
+    # Validate the complete Host header, including its port. Checking only URL.hostname
+    # would also accept malformed or unexpected ports such as localhost:9999.
+    if not is_allowed_local_host(request.headers.get("host")):
+        return JSONResponse(
+            status_code=400,
+            content={"detail": "LUNA accepts requests only through localhost on port 8000."},
+        )
 
     if request.method in {"POST", "PUT", "PATCH", "DELETE"}:
         origin = request.headers.get("origin")
-        if origin is not None and not is_allowed_origin(origin):
-            return JSONResponse(status_code=403, content={"detail": "Cross-origin changes are not allowed."})
+        # LUNA's supported frontend is a browser app, which sends Origin on state changes.
+        # Requiring it prevents requests with a missing Origin from bypassing the allowlist.
+        if not is_allowed_origin(origin):
+            return JSONResponse(
+                status_code=403,
+                content={"detail": "A trusted LUNA frontend Origin is required for changes."},
+            )
+
+    if request.method == "POST" and request.url.path == "/api/books/import":
+        content_length = request.headers.get("content-length")
+        if content_length is not None:
+            try:
+                request_size = int(content_length)
+            except ValueError:
+                return JSONResponse(
+                    status_code=400,
+                    content={"detail": "Invalid Content-Length header."},
+                )
+            if request_size < 0:
+                return JSONResponse(
+                    status_code=400,
+                    content={"detail": "Invalid Content-Length header."},
+                )
+            if request_size > MAX_UPLOAD_REQUEST_BYTES:
+                return JSONResponse(
+                    status_code=413,
+                    content={"detail": "Upload request exceeds the maximum allowed size."},
+                )
 
     return await call_next(request)
 
 
 @app.get("/api/health")
 def health_check() -> Dict[str, Any]:
-    """Return API status, storage directory, and database initialization information."""
+    """Return API status without revealing local filesystem paths."""
     return {
         "status": "healthy",
         "app": "LUNA API",
@@ -201,9 +231,9 @@ async def import_book(file: UploadFile = File(...)) -> Dict[str, Any]:
             if reader.metadata and reader.metadata.title:
                 candidate_title = str(reader.metadata.title).strip()
                 if candidate_title:
-                    extracted_title = candidate_title
+                    extracted_title = candidate_title[:MAX_BOOK_TITLE_CHARS]
             if not extracted_title:
-                extracted_title = Path(original_filename).stem.strip() or "Untitled Document"
+                extracted_title = Path(original_filename).stem.strip()[:MAX_BOOK_TITLE_CHARS] or "Untitled Document"
 
         except HTTPException:
             raise
@@ -219,7 +249,7 @@ async def import_book(file: UploadFile = File(...)) -> Dict[str, Any]:
         try:
             return insert_book(
                 title=extracted_title,
-                original_filename=original_filename,
+                original_filename=original_filename[:MAX_BOOK_TITLE_CHARS],
                 stored_pdf_path=relative_storage_path,
                 page_count=page_count,
                 import_timestamp=now_str,
@@ -275,10 +305,7 @@ def get_book_page_text(
     book_id: int,
     page: int = Query(default=1, ge=1, description="1-based PDF page number"),
 ) -> Dict[str, Any]:
-    """
-    Extract text from a single PDF page on demand.
-    This endpoint is local-only and can later provide page text to LUNA's offline TTS engine.
-    """
+    """Extract one PDF page's text for future offline text-to-speech support."""
     book, target_file = resolve_registered_pdf(book_id)
     try:
         reader = pypdf.PdfReader(str(target_file))
@@ -301,7 +328,7 @@ def get_book_page_text(
         if page > page_count:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Page {page} does not exist. This PDF has {len(reader.pages)} pages.",
+                detail=f"Page {page} does not exist. This PDF has {page_count} pages.",
             )
         text = extract_page_text(reader, page)
         return {
