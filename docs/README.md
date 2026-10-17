@@ -13,7 +13,7 @@ Start here, depending on what you need:
 - [08 — Functional PDF reader](learning-guide/08-functional-pdf-reader.md)
 - [09 — PDF text extraction API](learning-guide/09-pdf-text-extraction-api.md)
 - [10 — Security hardening](learning-guide/10-security-hardening.md)
-- [11 — Advanced local API hardening](learning-guide/11-advanced-local-api-hardening.md)
+- [11 — Advanced local API hardening](learning-guide/11-advanced-local-api-security.md)
 - [12 — Final session audit and handoff](learning-guide/12-final-session-audit-and-handoff.md)
 
 ## Learning method
