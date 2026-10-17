@@ -1,0 +1,30 @@
+# Dependencies and build output
+node_modules/
+dist/
+build/
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Local user data and private content
+local-data/books/*
+local-data/audio/*
+local-data/database/*
+!local-data/books/.gitkeep
+!local-data/audio/.gitkeep
+!local-data/database/.gitkeep
+
+# Environment secrets
+.env
+.env.*
+!.env.example
+
+# Editors and operating system
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
