@@ -4,7 +4,7 @@
 
 [![License: Apache-2.0](https://img.shields.io/badge/License-Apache--2.0-blue.svg)](LICENSE)
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-3776AB.svg?logo=python&logoColor=white)](https://www.python.org/)
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.1.0-009688.svg?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-backend-009688.svg?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
 [![React 18](https://img.shields.io/badge/React-18.3-61DAFB.svg?logo=react&logoColor=black)](https://react.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.6-3178C6.svg?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Vite](https://img.shields.io/badge/Vite-5.4-646CFF.svg?logo=vite&logoColor=white)](https://vitejs.dev/)
@@ -100,7 +100,7 @@ graph TD
             Backend -->|File Streaming| SafeServe[FileResponse with<br/>Path Traversal Guard]
         end
         
-        subgraph Local Storage ['local-data/']
+        subgraph LocalStorage["Local Storage (local-data/)"]
             Backend -->|Parameterized SQL| SQLite[(SQLite Database<br/>database/luna.db)]
             Ingestion -->|UUID Storage| BookFiles[Imported PDF Binaries<br/>books/*.pdf]
             SafeServe -->|Reads Binaries| BookFiles
