@@ -528,11 +528,14 @@ You can verify backend routes interactively via Swagger UI:
 
 ## Security & Limitations
 
-- **Local Scope**: LUNA is engineered as a local single-user prototype. It does not implement multi-tenant authentication, user roles, or password hashing.
-- **CORS Protection**: The FastAPI backend permits requests exclusively from local Vite origins (`localhost:5173` and `127.0.0.1:5173`).
-- **Path Traversal Guard**: PDF file retrieval (`/api/books/{id}/pdf`) resolves paths canonicalizing against `local-data/books/` and returns `403 Forbidden` if a requested path traverses outside the designated folder.
-- **Encrypted PDF Handling**: PDFs protected with passwords are automatically detected by `pypdf` and rejected gracefully with an explanatory HTTP 400 error rather than crashing the server.
-- **Database Backup**: Because all metadata is stored in `local-data/database/luna.db`, never delete the `local-data/` folder unless you intend to completely reset your library.
+- **Local-only boundary**: LUNA is a single-user desktop prototype with no login/authentication. Keep the API bound to `127.0.0.1`; do not expose it to a LAN or the internet.
+- **Host and cross-origin checks**: The backend rejects non-loopback Host values and rejects cross-origin state-changing requests when a browser supplies an untrusted Origin. CORS is restricted to the local Vite origins, required methods, and headers. These checks reduce browser-based abuse but do not replace authentication for a network-facing deployment.
+- **Path traversal guard**: PDF streaming and text extraction resolve registered filenames and reject paths or symlinks that escape `local-data/books/`.
+- **Resource limits**: PDF uploads are limited to 50 MB, documents over 20,000 pages are rejected, and one page-text response is capped at 1,000,000 characters. These are guardrails, not a guarantee against every malicious PDF parser denial-of-service.
+- **Reduced diagnostic disclosure**: The health endpoint does not return absolute local filesystem paths.
+- **Dependency checks**: CI runs Python dependency auditing and an npm audit threshold for high-severity production dependencies.
+- **Encrypted PDF handling**: Password-protected PDFs that cannot be unlocked are rejected.
+- **Local data**: Metadata and imported books live in `local-data/`. Back up this folder before making destructive changes.
 
 ---
 
