@@ -1,8 +1,7 @@
 @echo off
-setlocal EnableDelayedExpansion
+setlocal EnableExtensions EnableDelayedExpansion
 
 title LUNA Launcher
-
 echo ===================================================
 echo               LUNA System Launcher
 echo ===================================================
@@ -11,149 +10,105 @@ echo.
 set "ROOT_DIR=%~dp0"
 cd /d "%ROOT_DIR%"
 
-:: 1. Validate required backend components
 if not exist "%ROOT_DIR%backend\main.py" (
     echo [ERROR] backend\main.py was not found.
-    echo Please make sure start-luna.bat is placed in the root folder of the LUNA project.
     goto :ERROR_EXIT
 )
-
 if not exist "%ROOT_DIR%backend\.venv\Scripts\python.exe" (
-    echo [ERROR] Virtual environment Python executable was not found at:
-    echo   backend\.venv\Scripts\python.exe
-    echo Please ensure the backend virtual environment is created before launching.
+    echo [ERROR] Backend virtual environment not found.
+    echo Create it and install backend\requirements.txt first.
     goto :ERROR_EXIT
 )
-
-:: 2. Validate required frontend components
 if not exist "%ROOT_DIR%frontend\package.json" (
     echo [ERROR] frontend\package.json was not found.
     goto :ERROR_EXIT
 )
-
 if not exist "%ROOT_DIR%frontend\node_modules" (
-    echo [ERROR] frontend\node_modules directory was not found.
-    echo Please run "npm install" inside the frontend directory before running this launcher.
+    echo [ERROR] frontend\node_modules was not found.
+    echo Open a terminal in frontend and run: npm install
     goto :ERROR_EXIT
 )
-
 where npm >nul 2>&1
 if errorlevel 1 (
-    echo [ERROR] "npm" command was not found in your system PATH.
-    echo Please ensure Node.js is installed and accessible via PATH.
+    echo [ERROR] npm was not found in PATH. Install Node.js and reopen the terminal.
+    goto :ERROR_EXIT
+)
+where curl.exe >nul 2>&1
+if errorlevel 1 (
+    echo [ERROR] curl.exe was not found. This launcher uses curl to check HTTP readiness.
+    echo Update Windows or run the backend and frontend manually.
     goto :ERROR_EXIT
 )
 
-:: 3. Check for existing running instances on ports 8000 and 5173 to avoid duplicate servers
-set "BACKEND_RUNNING=0"
-set "FRONTEND_RUNNING=0"
-
-netstat -ano | findstr ":8000" | findstr "LISTENING" >nul 2>&1
-if not errorlevel 1 (
-    set "BACKEND_RUNNING=1"
-)
-
-netstat -ano | findstr ":5173" | findstr "LISTENING" >nul 2>&1
-if not errorlevel 1 (
-    set "FRONTEND_RUNNING=1"
-)
-
-:: 4. Start FastAPI Backend if not already running
-if "!BACKEND_RUNNING!"=="1" (
-    echo [INFO] FastAPI backend is already running on http://127.0.0.1:8000. Skipping backend startup.
-) else (
-    echo [STARTING] Launching FastAPI backend in a separate window...
+echo [INFO] Checking whether LUNA is already running...
+curl.exe --silent --show-error --fail --max-time 2 http://127.0.0.1:8000/api/health >nul 2>&1
+if errorlevel 1 (
+    echo [STARTING] Launching FastAPI backend...
     start "LUNA Backend (FastAPI)" /D "%ROOT_DIR%backend" cmd /k ".venv\Scripts\python.exe -m uvicorn main:app --host 127.0.0.1 --port 8000 --reload"
-)
-
-:: 5. Start Vite Frontend if not already running
-if "!FRONTEND_RUNNING!"=="1" (
-    echo [INFO] Vite frontend is already running on http://localhost:5173. Skipping frontend startup.
 ) else (
-    echo [STARTING] Launching Vite frontend in a separate window...
-    start "LUNA Frontend (Vite)" /D "%ROOT_DIR%frontend" cmd /k "npm run dev"
+    echo [INFO] LUNA backend health endpoint already responds.
 )
 
-:: 6. Wait for services to be ready before opening the browser
-if "!BACKEND_RUNNING!"=="1" goto :SKIP_BACKEND_WAIT
+curl.exe --silent --show-error --fail --max-time 2 http://127.0.0.1:5173/ >nul 2>&1
+if errorlevel 1 (
+    echo [STARTING] Launching Vite frontend...
+    start "LUNA Frontend (Vite)" /D "%ROOT_DIR%frontend" cmd /k "npm run dev -- --host 127.0.0.1"
+) else (
+    echo [INFO] Frontend already responds on port 5173.
+)
 
 echo.
-echo [WAITING] Verifying FastAPI backend on http://127.0.0.1:8000 ...
+echo [WAITING] Waiting up to 30 seconds for the backend health endpoint...
 set "B_WAIT_SECONDS=0"
-set "B_MAX_WAIT=15"
-
-:WAIT_BACKEND_LOOP
-netstat -ano | findstr ":8000" | findstr "LISTENING" >nul 2>&1
-if not errorlevel 1 (
-    echo [READY] FastAPI backend is listening on port 8000.
-    goto :BACKEND_READY_OK
-)
-
+:WAIT_BACKEND
+curl.exe --silent --show-error --fail --max-time 2 http://127.0.0.1:8000/api/health >nul 2>&1
+if not errorlevel 1 goto :BACKEND_READY
 set /a B_WAIT_SECONDS+=1
-if !B_WAIT_SECONDS! geq !B_MAX_WAIT! (
-    echo [WARNING] FastAPI backend is not yet detected on port 8000.
-    echo Please check the "LUNA Backend (FastAPI)" terminal window if issues persist.
-    goto :BACKEND_READY_OK
-)
-
-ping -n 2 127.0.0.1 >nul
-goto :WAIT_BACKEND_LOOP
-
-:BACKEND_READY_OK
-:SKIP_BACKEND_WAIT
-
-if "!FRONTEND_RUNNING!"=="1" (
-    echo.
-    echo [INFO] Vite frontend is already active on port 5173.
-    goto :SKIP_FRONTEND_WAIT
-)
-
-echo.
-echo [WAITING] Waiting for Vite frontend to start on http://localhost:5173 ...
-set "WAIT_SECONDS=0"
-set "MAX_WAIT_SECONDS=30"
-
-:WAIT_FRONTEND_LOOP
-netstat -ano | findstr ":5173" | findstr "LISTENING" >nul 2>&1
-if not errorlevel 1 (
-    echo [READY] Vite frontend is listening on port 5173.
-    goto :SKIP_FRONTEND_WAIT
-)
-
-set /a WAIT_SECONDS+=1
-if !WAIT_SECONDS! geq !MAX_WAIT_SECONDS! (
-    echo.
-    echo [ERROR] Vite frontend failed to start on http://localhost:5173 within !MAX_WAIT_SECONDS! seconds.
-    echo Please inspect the "LUNA Frontend (Vite)" terminal window for error details.
+if !B_WAIT_SECONDS! geq 30 (
+    echo [ERROR] Backend did not respond at http://127.0.0.1:8000/api/health.
+    echo Inspect the "LUNA Backend (FastAPI)" terminal for the Python error.
     goto :ERROR_EXIT
 )
+timeout /t 1 /nobreak >nul
+goto :WAIT_BACKEND
 
-ping -n 2 127.0.0.1 >nul
-goto :WAIT_FRONTEND_LOOP
-
-:SKIP_FRONTEND_WAIT
-
-:: 7. Launch browser preview at http://localhost:5173
+:BACKEND_READY
+echo [READY] Backend HTTP health check passed.
 echo.
-echo [BROWSER] Opening LUNA preview at http://localhost:5173 ...
-start http://localhost:5173
+echo [WAITING] Waiting up to 45 seconds for the frontend...
+set "F_WAIT_SECONDS=0"
+:WAIT_FRONTEND
+curl.exe --silent --show-error --fail --max-time 2 http://127.0.0.1:5173/ >nul 2>&1
+if not errorlevel 1 goto :FRONTEND_READY
+set /a F_WAIT_SECONDS+=1
+if !F_WAIT_SECONDS! geq 45 (
+    echo [ERROR] Frontend did not respond at http://127.0.0.1:5173/.
+    echo Inspect the "LUNA Frontend (Vite)" terminal for the npm/Vite error.
+    goto :ERROR_EXIT
+)
+timeout /t 1 /nobreak >nul
+goto :WAIT_FRONTEND
+
+:FRONTEND_READY
+echo [READY] Frontend HTTP check passed.
+echo.
+echo [BROWSER] Opening LUNA at http://127.0.0.1:5173/ ...
+start "" "http://127.0.0.1:5173/"
 
 echo.
 echo ===================================================
-echo [SUCCESS] LUNA services are ready.
-echo Keep the backend and frontend terminal windows open.
-echo You may close this launcher window at any time.
+echo [SUCCESS] LUNA is responding.
+echo Keep both service terminal windows open while using it.
 echo ===================================================
 echo.
-:: Brief 3 second pause before launcher window exits
-ping -n 4 127.0.0.1 >nul
+pause
 exit /b 0
 
 :ERROR_EXIT
 echo.
 echo ===================================================
-echo [FAILURE] LUNA could not be launched.
-echo Please review the error messages above.
+echo [FAILURE] LUNA could not be started successfully.
+echo Read the error above, then check the service terminal windows.
 echo ===================================================
 echo.
 pause
