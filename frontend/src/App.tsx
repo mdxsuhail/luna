@@ -11,6 +11,7 @@ import { PlaylistsPage } from './pages/PlaylistsPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { DevicePage } from './pages/DevicePage';
 import { AboutPage } from './pages/AboutPage';
+import { ProfilesPage } from './pages/ProfilesPage';
 import { X, Check, LockKeyhole, ShieldCheck } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { API_BASE_URL } from './services/api';
@@ -142,6 +143,8 @@ const AppContent: React.FC = () => {
         return <AudiobooksPage />;
       case 'playlists':
         return <PlaylistsPage />;
+      case 'profiles':
+        return <ProfilesPage />;
       case 'settings':
       case 'device':
       case 'about':
