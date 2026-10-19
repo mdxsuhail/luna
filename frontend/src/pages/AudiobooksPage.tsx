@@ -110,9 +110,9 @@ export const AudiobooksPage: React.FC = () => {
   };
 
   const voices = [
-    'Luna Calm (Local Neural)',
-    'Studio Narrator (Local)',
-    'E-Ink Voice (Low Power)',
+    'Default browser voice',
+    'English voice',
+    'System voice',
   ];
 
   return (
@@ -121,16 +121,16 @@ export const AudiobooksPage: React.FC = () => {
       <div style={{ marginBottom: '24px' }}>
         <h1 className="section-title">Audiobook Studio</h1>
         <p className="section-subtitle">
-          Offline text-to-speech listening station powered by local voice models
+          Read selectable text from your PDFs aloud using your browser's built-in speech engine
         </p>
       </div>
 
       {/* Honest Status Notice */}
       <StatusBanner
         type="info"
-        title="Offline TTS Synthesis Pipeline"
-        description="Text-to-speech generation will run locally on your CPU/GPU and cache synthesized audio in 'local-data/audio/'. This interface provides full control layouts and sample audio track structures."
-        badge="Local Pipeline"
+        title="Browser text-to-speech is ready"
+        description="Press Play to read PDF text aloud using your browser’s available speech voices and the local LUNA API. Scanned PDFs without selectable text need OCR before they can be narrated."
+        badge="Browser TTS"
       />
 
       <div
@@ -412,7 +412,7 @@ export const AudiobooksPage: React.FC = () => {
                             {chap.title}
                           </div>
                           <div style={{ fontSize: '11.5px', color: 'var(--text-dim)', marginTop: '2px' }}>
-                            Page {chap.pageNumber} • Local synthesis ready
+                            Page {chap.pageNumber} • Browser speech
                           </div>
                         </div>
                       </div>

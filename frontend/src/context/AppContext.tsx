@@ -1,7 +1,7 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { Book, Chapter, PageType, Playlist, ReaderTheme, ApiBook, ApiHealthResponse } from '../types';
 import { mockPlaylists } from '../data/mockData';
-import { fetchHealth, fetchBooks, adaptApiBook } from '../services/api';
+import { fetchHealth, fetchBooks, adaptApiBook, API_BASE_URL } from '../services/api';
 
 interface AppContextType {
   activePage: PageType;
@@ -68,7 +68,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
   const [audioPositionSeconds, setAudioPositionSeconds] = useState<number>(0);
   const [playbackSpeed, setPlaybackSpeed] = useState<number>(1.0);
-  const [voiceProfile, setVoiceProfile] = useState<string>('Luna Calm (Local Neural)');
+  const [voiceProfile, setVoiceProfile] = useState<string>('Default browser voice');
+  const speechSessionRef = useRef(0);
+  const speechPageRef = useRef(1);
+  const speechBookIdRef = useRef<number | null>(null);
   
   // Toast notifications
   const [notification, setNotification] = useState<string | null>(null);
@@ -82,13 +85,125 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const dismissNotification = () => setNotification(null);
 
-  const togglePlay = () => {
+  const stopSpeech = useCallback(() => {
+    speechSessionRef.current += 1;
+    if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+    setIsPlaying(false);
+  }, []);
+
+  const togglePlay = useCallback(() => {
     if (!activeBook) {
-      showNotification('No audiobook active. Select a book from your library first.');
+      showNotification('Open a PDF from My Library first, then press Play.');
       return;
     }
-    setIsPlaying((prev) => !prev);
-  };
+    if (!('speechSynthesis' in window) || !('SpeechSynthesisUtterance' in window)) {
+      showNotification('Text-to-speech is unavailable in this browser. Try the latest Chrome or Edge.');
+      return;
+    }
+
+    // Pause an active speech session. Invalidate in-flight fetches so they cannot
+    // unexpectedly start speaking after the user has paused.
+    if (isPlaying) {
+      speechSessionRef.current += 1;
+      window.speechSynthesis.cancel();
+      setIsPlaying(false);
+      return;
+    }
+
+    const sessionId = ++speechSessionRef.current;
+    const book = activeBook;
+    speechBookIdRef.current = book.id;
+    speechPageRef.current = Math.max(1, activeChapter?.pageNumber || readerPage || book.currentPage || 1);
+    let totalPages = Math.max(1, book.totalPages || 1);
+
+    const readNextPage = async () => {
+      if (speechSessionRef.current !== sessionId || speechBookIdRef.current !== book.id) return;
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/books/${book.id}/text?page=${speechPageRef.current}`);
+        const payload = await response.json().catch(() => ({}));
+        if (speechSessionRef.current !== sessionId) return;
+        if (!response.ok) {
+          throw new Error(payload.detail || `Could not extract text from page ${speechPageRef.current} (HTTP ${response.status}).`);
+        }
+        totalPages = Number(payload.page_count) || totalPages;
+        const pageText = typeof payload.text === 'string' ? payload.text.trim() : '';
+        if (!pageText) {
+          throw new Error(payload.message || `No selectable text found on page ${speechPageRef.current}. This PDF may be scanned and require OCR.`);
+        }
+
+        // Split long pages into small utterances. Some browser speech engines
+        // truncate long utterances or fail without reporting a useful error.
+        const sentences = pageText.match(/[^.!?]+[.!?]+|[^.!?]+$/g) || [pageText];
+        const chunks: string[] = [];
+        let buffer = '';
+        for (const sentence of sentences) {
+          const cleanSentence = sentence.trim();
+          if (!cleanSentence) continue;
+          if (buffer && (buffer.length + cleanSentence.length + 1) > 240) {
+            chunks.push(buffer);
+            buffer = '';
+          }
+          if (cleanSentence.length > 240) {
+            if (buffer) chunks.push(buffer);
+            buffer = '';
+            for (let offset = 0; offset < cleanSentence.length; offset += 240) {
+              chunks.push(cleanSentence.slice(offset, offset + 240));
+            }
+          } else {
+            buffer = buffer ? `${buffer} ${cleanSentence}` : cleanSentence;
+          }
+        }
+        if (buffer) chunks.push(buffer);
+        let chunkIndex = 0;
+        const speakNextChunk = () => {
+          if (speechSessionRef.current !== sessionId) return;
+          if (chunkIndex >= chunks.length) {
+            if (speechPageRef.current < totalPages) {
+              speechPageRef.current += 1;
+              setReaderPage(speechPageRef.current);
+              setAudioPositionSeconds(speechPageRef.current - 1);
+              void readNextPage();
+            } else {
+              setIsPlaying(false);
+              speechBookIdRef.current = null;
+              showNotification('Finished reading the PDF aloud.');
+            }
+            return;
+          }
+          const utterance = new SpeechSynthesisUtterance(chunks[chunkIndex++]);
+          utterance.rate = Math.min(2, Math.max(0.5, playbackSpeed));
+          const voices = window.speechSynthesis.getVoices();
+          const languageVoice = voices.find((voice) => /^en([-_]|$)/i.test(voice.lang));
+          if (languageVoice) utterance.voice = languageVoice;
+          utterance.onend = speakNextChunk;
+          utterance.onerror = (event) => {
+            if (speechSessionRef.current !== sessionId) return;
+            setIsPlaying(false);
+            if (event.error !== 'canceled' && event.error !== 'interrupted') {
+              showNotification(`Speech playback failed (${event.error}). Check your device volume and browser speech settings, then try again.`);
+            }
+          };
+          window.speechSynthesis.speak(utterance);
+        };
+        speakNextChunk();
+      } catch (error) {
+        if (speechSessionRef.current !== sessionId) return;
+        setIsPlaying(false);
+        speechBookIdRef.current = null;
+        showNotification(error instanceof Error ? error.message : 'Unable to read this PDF aloud.');
+      }
+    };
+
+    window.speechSynthesis.cancel();
+    setIsPlaying(true);
+    setAudioPositionSeconds(speechPageRef.current - 1);
+    void readNextPage();
+  }, [activeBook, activeChapter, readerPage, isPlaying, playbackSpeed]);
+
+  useEffect(() => () => {
+    speechSessionRef.current += 1;
+    if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+  }, []);
 
   /**
    * Fetches health status and books from the FastAPI backend.
@@ -173,8 +288,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       audioSeconds: 600,
       sampleContent: ['Audio synthesis ready.']
     };
+    // Loading a book is not the same as starting speech playback.
+    // Keep Play in its ready state until the user explicitly presses it.
+    stopSpeech();
+    speechPageRef.current = Math.max(1, targetChapter.pageNumber || 1);
     setActiveChapter(targetChapter);
-    setIsPlaying(true);
+    setIsPlaying(false);
     setActivePage('audiobooks');
   };
 
