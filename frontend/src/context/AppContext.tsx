@@ -72,6 +72,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const speechSessionRef = useRef(0);
   const speechPageRef = useRef(1);
   const speechBookIdRef = useRef<string | number | null>(null);
+  const speechPausedRef = useRef(false);
   
   // Toast notifications
   const [notification, setNotification] = useState<string | null>(null);
@@ -88,6 +89,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const stopSpeech = useCallback(() => {
     speechSessionRef.current += 1;
     if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+    speechPausedRef.current = false;
     setIsPlaying(false);
   }, []);
 
@@ -101,11 +103,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return;
     }
 
-    // Pause an active speech session. Invalidate in-flight fetches so they cannot
-    // unexpectedly start speaking after the user has paused.
+    // Resume the existing browser speech queue instead of canceling it and
+    // restarting the current PDF page from the beginning.
+    if (speechPausedRef.current) {
+      window.speechSynthesis.resume();
+      speechPausedRef.current = false;
+      setIsPlaying(true);
+      return;
+    }
+
+    // Pause keeps the current utterance and its position in the browser queue.
     if (isPlaying) {
-      speechSessionRef.current += 1;
-      window.speechSynthesis.cancel();
+      window.speechSynthesis.pause();
+      speechPausedRef.current = true;
       setIsPlaying(false);
       return;
     }
@@ -165,6 +175,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
               void readNextPage();
             } else {
               setIsPlaying(false);
+              speechPausedRef.current = false;
               speechBookIdRef.current = null;
               showNotification('Finished reading the PDF aloud.');
             }
@@ -179,6 +190,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           utterance.onerror = (event) => {
             if (speechSessionRef.current !== sessionId) return;
             setIsPlaying(false);
+            speechPausedRef.current = false;
             if (event.error !== 'canceled' && event.error !== 'interrupted') {
               showNotification(`Speech playback failed (${event.error}). Check your device volume and browser speech settings, then try again.`);
             }
@@ -189,12 +201,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       } catch (error) {
         if (speechSessionRef.current !== sessionId) return;
         setIsPlaying(false);
+        speechPausedRef.current = false;
         speechBookIdRef.current = null;
         showNotification(error instanceof Error ? error.message : 'Unable to read this PDF aloud.');
       }
     };
 
     window.speechSynthesis.cancel();
+    speechPausedRef.current = false;
     setIsPlaying(true);
     setAudioPositionSeconds(speechPageRef.current - 1);
     void readNextPage();
