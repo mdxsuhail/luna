@@ -20,7 +20,9 @@ import logging
 from fastapi import FastAPI, UploadFile, File, HTTPException, Query, Request, status, Body
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
+from pydantic import BaseModel, Field
 import pypdf
+from auth import (init_auth_tables, create_user, verify_credentials, create_session, get_user_for_token, update_user_profile, delete_session)
 
 from database import (
     init_db,
@@ -102,6 +104,7 @@ async def lifespan(app: FastAPI):
     """Initialize local directories and the SQLite schema on startup."""
     ensure_directories()
     init_db()
+    init_auth_tables()
     yield
 
 
@@ -118,8 +121,8 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
     allow_credentials=False,
-    allow_methods=["GET", "HEAD", "POST", "OPTIONS"],
-    allow_headers=["Accept", "Content-Type"],
+    allow_methods=["GET", "HEAD", "POST", "PATCH", "OPTIONS"],
+    allow_headers=["Accept", "Content-Type", "Authorization"],
 )
 
 
@@ -173,6 +176,78 @@ async def protect_local_api(request: Request, call_next):
             )
 
     return await call_next(request)
+
+
+class SignUpPayload(BaseModel):
+    username: str = Field(min_length=1, max_length=100)
+    email: str = Field(min_length=3, max_length=300)
+    display_name: str = Field(min_length=1, max_length=100)
+    password: str = Field(min_length=1, max_length=300)
+
+class SignInPayload(BaseModel):
+    username_or_email: str = Field(min_length=1, max_length=300)
+    password: str = Field(min_length=1, max_length=300)
+
+class ProfileUpdatePayload(BaseModel):
+    display_name: str = Field(min_length=1, max_length=100)
+    role: str = Field(min_length=1, max_length=100)
+    bio: str = Field(max_length=500)
+    skill: str = Field(min_length=1, max_length=100)
+
+def require_user(request: Request) -> Dict[str, Any]:
+    authorization = request.headers.get('authorization', '')
+    if not authorization.startswith('Bearer '):
+        raise HTTPException(status_code=401, detail='Please sign in to continue.')
+    token = authorization[7:].strip()
+    if not token or len(token) > 200:
+        raise HTTPException(status_code=401, detail='Session is invalid. Please sign in again.')
+    user = get_user_for_token(token)
+    if not user:
+        raise HTTPException(status_code=401, detail='Session expired or invalid. Please sign in again.')
+    return user
+
+@app.post('/api/auth/signup', status_code=status.HTTP_201_CREATED)
+def signup(payload: SignUpPayload) -> Dict[str, Any]:
+    try:
+        user = create_user(payload.username, payload.email, payload.display_name, payload.password)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    token, expires_at = create_session(int(user['id']))
+    return {'user': user, 'token': token, 'expires_at': expires_at}
+
+@app.post('/api/auth/signin')
+def signin(payload: SignInPayload) -> Dict[str, Any]:
+    user = verify_credentials(payload.username_or_email, payload.password)
+    if not user:
+        raise HTTPException(status_code=401, detail='Username/email or password is incorrect.')
+    token, expires_at = create_session(int(user['id']))
+    return {'user': user, 'token': token, 'expires_at': expires_at}
+
+@app.get('/api/auth/me')
+def current_user(request: Request) -> Dict[str, Any]:
+    return {'user': require_user(request)}
+
+@app.patch('/api/auth/profile')
+def save_profile(payload: ProfileUpdatePayload, request: Request) -> Dict[str, Any]:
+    user = require_user(request)
+    try:
+        updated = update_user_profile(int(user['id']), payload.display_name, payload.role, payload.bio, payload.skill)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    if not updated:
+        raise HTTPException(status_code=404, detail='Profile was not found.')
+    return {'user': updated}
+
+@app.post('/api/auth/signout')
+def signout(request: Request) -> Dict[str, bool]:
+    authorization = request.headers.get('authorization', '')
+    if not authorization.startswith('Bearer '):
+        raise HTTPException(status_code=401, detail='Please sign in to continue.')
+    token = authorization[7:].strip()
+    if not token or len(token) > 200:
+        raise HTTPException(status_code=401, detail='Session is invalid.')
+    delete_session(token)
+    return {'signed_out': True}
 
 
 def _b64url(data: bytes) -> str:
