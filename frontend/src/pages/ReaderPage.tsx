@@ -346,6 +346,16 @@ export const ReaderPage: React.FC = () => {
             flexDirection: 'column',
             minHeight: 0,
             overflow: 'hidden',
+            ...(isFullView ? {
+              position: 'fixed',
+              inset: 0,
+              zIndex: 10000,
+              width: '100vw',
+              height: '100dvh',
+              minHeight: '100dvh',
+              borderRadius: 0,
+              background: 'var(--bg-app)',
+            } : {}),
           }}
         >
           <div
@@ -387,7 +397,7 @@ export const ReaderPage: React.FC = () => {
               display: 'block',
               width: '100%',
               flex: 1,
-              minHeight: '65vh',
+              minHeight: isFullView ? 0 : '65vh',
               height: '100%',
               border: 0,
               backgroundColor: '#525659',
