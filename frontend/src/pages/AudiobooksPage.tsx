@@ -86,8 +86,6 @@ export const AudiobooksPage: React.FC = () => {
     );
   }
 
-  const audioReadyBooks = books.filter((b: Book) => b.hasAudio);
-
   const formatTime = (secs: number) => {
     const m = Math.floor(secs / 60);
     const s = Math.floor(secs % 60);
