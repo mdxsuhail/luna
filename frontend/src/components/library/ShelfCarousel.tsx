@@ -1,11 +1,11 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Book } from '../../types';
 import './ShelfCarousel.css';
 
 export const ShelfCarousel: React.FC<{books:Book[];onOpen:(book:Book)=>void}> = ({books,onOpen}) => {
  const [active,setActive]=useState(0);
- const list=useMemo(()=>books,[books]);
- React.useEffect(()=>setActive(0),[books.length]);
+ const list = books;
+ useEffect(() => setActive(0), [books]);
  if(!list.length)return <div className="luna-shelf-empty">Your shelf is waiting. Import a PDF to place your first book here.</div>;
  const index=Math.min(active,list.length-1), current=list[index];
  const hue=(s:string)=>[...s].reduce((a,c)=>(a*31+c.charCodeAt(0))%360,7);

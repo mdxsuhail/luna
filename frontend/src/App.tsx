@@ -27,15 +27,26 @@ const AppContent: React.FC = () => {
   useEffect(() => {
     const token = sessionStorage.getItem('luna_dev_token');
     if (!token) return;
-    fetch(`${API_BASE_URL}/api/dev/verify`, { headers: { Authorization: `Bearer ${token}` } })
+
+    const controller = new AbortController();
+    fetch(`${API_BASE_URL}/api/dev/verify`, {
+      headers: { Authorization: `Bearer ${token}` },
+      signal: controller.signal,
+    })
       .then((response) => {
+        if (controller.signal.aborted) return;
         if (response.ok) setDeveloperUnlocked(true);
         else {
           sessionStorage.removeItem('luna_dev_token');
           setDeveloperUnlocked(false);
         }
       })
-      .catch(() => setDeveloperUnlocked(false));
+      .catch((error: unknown) => {
+        if (error instanceof Error && error.name === 'AbortError') return;
+        if (!controller.signal.aborted) setDeveloperUnlocked(false);
+      });
+
+    return () => controller.abort();
   }, []);
 
   useEffect(() => {
@@ -45,14 +56,25 @@ const AppContent: React.FC = () => {
       setDeveloperUnlocked(false);
       return;
     }
-    fetch(`${API_BASE_URL}/api/dev/verify`, { headers: { Authorization: `Bearer ${token}` } })
+
+    const controller = new AbortController();
+    fetch(`${API_BASE_URL}/api/dev/verify`, {
+      headers: { Authorization: `Bearer ${token}` },
+      signal: controller.signal,
+    })
       .then((response) => {
+        if (controller.signal.aborted) return;
         if (!response.ok) {
           sessionStorage.removeItem('luna_dev_token');
           setDeveloperUnlocked(false);
         }
       })
-      .catch(() => setDeveloperUnlocked(false));
+      .catch((error: unknown) => {
+        if (error instanceof Error && error.name === 'AbortError') return;
+        if (!controller.signal.aborted) setDeveloperUnlocked(false);
+      });
+
+    return () => controller.abort();
   }, [activePage, developerUnlocked, isDeveloperPage]);
   const unlockDeveloperArea = async (event: React.FormEvent) => {
     event.preventDefault();

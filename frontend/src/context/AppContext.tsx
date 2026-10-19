@@ -97,7 +97,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const stopSpeech = useCallback(() => {
     speechSessionRef.current += 1;
-    if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+    if ('speechSynthesis' in window && window.speechSynthesis) window.speechSynthesis.cancel();
     activeUtteranceRef.current = null;
     speechPausedRef.current = false;
     setIsPlaying(false);
@@ -220,6 +220,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
     };
 
+    // Re-check before starting playback so unsupported browsers never enter the read loop.
+    if (!('speechSynthesis' in window) || !window.speechSynthesis || !('SpeechSynthesisUtterance' in window)) {
+      setIsPlaying(false);
+      speechPausedRef.current = false;
+      showNotification('Text-to-speech is unavailable in this browser. Try the latest Chrome or Edge.');
+      return;
+    }
     window.speechSynthesis.cancel();
     speechPausedRef.current = false;
     setIsPlaying(true);
