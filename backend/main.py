@@ -365,6 +365,7 @@ def get_book_pdf(book_id: int):
         path=str(target_file),
         media_type="application/pdf",
         filename=book["original_filename"],
+        content_disposition_type="inline",
     )
 
 
