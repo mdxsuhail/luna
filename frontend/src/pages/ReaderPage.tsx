@@ -28,7 +28,8 @@ export const ReaderPage: React.FC = () => {
   } = useApp();
 
   const [isTocOpen, setIsTocOpen] = useState(true);
-  const [isBookmarked, setIsBookmarked] = useState(false);\n  const [isFullView, setIsFullView] = useState(false);
+  const [isBookmarked, setIsBookmarked] = useState(false);
+  const [isFullView, setIsFullView] = useState(false);
 
   const themes: { id: ReaderTheme; label: string; bg: string; text: string }[] = [
     { id: 'charcoal', label: 'Charcoal', bg: '#12141c', text: '#f3f4f6' },
