@@ -1,0 +1,221 @@
+/* Editorial music-player inspired Audio Studio */
+.audio-studio-page {
+  --studio-paper: #f2f0eb;
+  --studio-ink: #111111;
+  --studio-muted: #77736d;
+  --studio-line: #d9d5ce;
+  color: var(--studio-ink);
+  background: var(--studio-paper);
+  min-height: 100%;
+  padding: 30px clamp(16px, 4vw, 56px) 56px;
+  overflow-y: auto;
+}
+.audio-studio-page .section-title,
+.audio-studio-page h2,
+.audio-studio-page h3 {
+  color: var(--studio-ink) !important;
+}
+.audio-studio-page .section-subtitle {
+  color: var(--studio-muted);
+}
+.audio-studio-page > div:first-child {
+  max-width: 1200px;
+  margin: 0 auto 22px !important;
+}
+.audio-studio-page .section-title {
+  font-size: clamp(28px, 4vw, 48px);
+  font-weight: 400;
+  letter-spacing: -0.055em;
+  line-height: 1;
+  margin-bottom: 9px;
+}
+.audio-studio-page .section-subtitle {
+  font-size: 12px;
+  letter-spacing: 0.04em;
+}
+.audio-studio-layout {
+  max-width: 1200px;
+  margin-inline: auto;
+}
+.audio-studio-page .audio-studio-status {
+  max-width: 1200px;
+  margin: 0 auto 18px;
+}
+.audio-studio-page .audio-studio-status > * {
+  background: rgba(255,255,255,0.48) !important;
+  color: var(--studio-muted) !important;
+  border: 1px solid var(--studio-line) !important;
+  border-radius: 2px !important;
+  box-shadow: none !important;
+}
+.audio-studio-page .audio-studio-player-card,
+.audio-studio-page .audio-studio-tracklist-card,
+.audio-studio-page .audio-studio-library-column > div {
+  background: #fbfaf7 !important;
+  border: 1px solid var(--studio-line) !important;
+  border-radius: 2px !important;
+  box-shadow: 0 12px 34px rgba(28, 24, 18, 0.035);
+}
+.audio-studio-page .audio-studio-player-card {
+  padding: clamp(18px, 3vw, 34px) !important;
+  min-width: 0;
+}
+.audio-studio-page .audio-studio-player-card > div:first-child {
+  width: 100% !important;
+  max-width: 340px;
+  height: 230px !important;
+  position: relative;
+  overflow: hidden;
+  border-radius: 0 !important;
+  background: #e6e2db !important;
+  box-shadow: none !important;
+  border: 1px solid #d7d2ca !important;
+  padding: 18px !important;
+  margin-bottom: 26px !important;
+  align-self: stretch;
+  isolation: isolate;
+}
+.audio-studio-page .audio-studio-player-card > div:first-child::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  width: 265px;
+  height: 265px;
+  border-radius: 50%;
+  left: -85px;
+  top: -18px;
+  background: repeating-radial-gradient(circle at center, #111 0 2px, #191919 3px 4px, #090909 5px 6px);
+  border: 7px solid #f7f5ef;
+  box-shadow: 0 0 0 1px #aaa49b, inset -8px 0 18px rgba(255,255,255,.08);
+}
+.audio-studio-page .audio-studio-player-card > div:first-child::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  left: 15px;
+  top: 82px;
+  background: #f5f2eb;
+  border: 1px solid #c9c2b8;
+  box-shadow: inset 0 0 0 20px #f5f2eb, inset 0 0 0 21px #d8d1c7;
+}
+.audio-studio-page .audio-studio-player-card > div:first-child span,
+.audio-studio-page .audio-studio-player-card > div:first-child div {
+  text-shadow: 0 1px 5px rgba(0,0,0,.28);
+}
+.audio-studio-page .audio-studio-player-card > h2 {
+  font-family: var(--font-serif);
+  font-size: clamp(22px, 2.3vw, 30px) !important;
+  font-weight: 500 !important;
+  letter-spacing: -0.025em;
+}
+.audio-studio-page .audio-studio-player-card > div:nth-of-type(2) {
+  color: var(--studio-muted) !important;
+  font-size: 11px !important;
+  overflow-wrap: anywhere;
+}
+.audio-studio-page .audio-studio-player-card > div:nth-of-type(3) {
+  color: var(--studio-muted) !important;
+  border-top: 1px solid var(--studio-line);
+  padding-top: 14px;
+}
+.audio-studio-page .play-pause-btn {
+  background: var(--studio-ink) !important;
+  color: #fbfaf7 !important;
+  border: 1px solid var(--studio-ink) !important;
+  box-shadow: none !important;
+}
+.audio-studio-page .play-pause-btn:hover {
+  background: #35322e !important;
+}
+.audio-studio-page .audio-studio-tracklist-card {
+  padding: clamp(16px, 2.5vw, 28px) !important;
+}
+.audio-studio-page .audio-studio-tracklist-card .section-header {
+  border-bottom: 1px solid var(--studio-line);
+  padding-bottom: 16px;
+}
+.audio-studio-page .audio-studio-tracklist-card .section-header h3,
+.audio-studio-page .audio-studio-library-column h3 {
+  font-size: 18px !important;
+  font-family: var(--font-serif);
+  font-weight: 500 !important;
+}
+.audio-studio-page .audio-studio-tracklist-card .section-header .section-subtitle {
+  margin-top: 4px;
+}
+.audio-studio-page .audio-studio-tracklist-card .section-header > div:last-child {
+  color: #79736a !important;
+  font-size: 9px !important;
+  letter-spacing: .12em;
+}
+.audio-studio-page .audio-studio-tracklist-card [style*="border-radius: var(--radius-md)"] {
+  border-radius: 0 !important;
+  border-width: 0 0 1px !important;
+  border-color: var(--studio-line) !important;
+  background: transparent !important;
+  padding: 14px 8px !important;
+}
+.audio-studio-page .audio-studio-tracklist-card [style*="border-radius: var(--radius-md)"]:hover {
+  background: #f0ede7 !important;
+}
+.audio-studio-page .audio-studio-tracklist-card [style*="border-radius: var(--radius-md)"] > div:first-child > div:first-child {
+  border-radius: 0 !important;
+  background: transparent !important;
+  color: #81796f !important;
+  font-family: var(--font-sans);
+}
+.audio-studio-page .audio-studio-tracklist-card [style*="border-radius: var(--radius-md)"] > div:first-child > div:nth-child(2) > div:first-child {
+  color: var(--studio-ink) !important;
+  font-size: 12px !important;
+  letter-spacing: .035em;
+  text-transform: uppercase;
+}
+.audio-studio-page .audio-studio-tracklist-card [style*="border-radius: var(--radius-md)"] > div:first-child > div:nth-child(2) > div:last-child {
+  color: var(--studio-muted) !important;
+  font-size: 10px !important;
+  letter-spacing: .08em;
+}
+.audio-studio-page .audio-studio-library-column > div:last-child {
+  padding: 20px 24px !important;
+}
+.audio-studio-page .audio-studio-library-column > div:last-child [style*="width: 180px"] {
+  background: #f2f0eb !important;
+  border: 1px solid var(--studio-line) !important;
+  border-radius: 0 !important;
+}
+.audio-studio-page .audio-studio-library-column > div:last-child [style*="height: 80px"] {
+  border-radius: 0 !important;
+  filter: saturate(.45);
+}
+@media (max-width: 760px) {
+  .audio-studio-page {
+    padding: 22px 14px 36px;
+  }
+  .audio-studio-layout {
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 16px !important;
+  }
+  .audio-studio-page .audio-studio-player-card {
+    padding: 18px !important;
+  }
+  .audio-studio-page .audio-studio-player-card > div:first-child {
+    max-width: 100%;
+    height: 190px !important;
+  }
+  .audio-studio-page .audio-studio-player-card > div:first-child::before {
+    width: 230px;
+    height: 230px;
+    left: -55px;
+  }
+  .audio-studio-page .audio-studio-player-card > div:first-child::after {
+    left: 37px;
+    top: 64px;
+  }
+  .audio-studio-page .audio-studio-tracklist-card .section-header {
+    align-items: flex-start;
+    gap: 12px;
+  }
+}
