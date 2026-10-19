@@ -4,7 +4,6 @@ import {
   HardDrive,
   Sliders,
   Shield,
-  Trash2,
   CheckCircle2,
   RefreshCw,
   AlertCircle
@@ -28,10 +27,6 @@ export const SettingsPage: React.FC = () => {
   } = useApp();
 
   const [activeTab, setActiveTab] = useState<'storage' | 'reader' | 'audio' | 'privacy'>('storage');
-
-  const handleClearCache = () => {
-    showNotification('Audio cache cleared: 0 MB of temporary waveforms freed.');
-  };
 
   return (
     <div className="page-container">
@@ -151,7 +146,7 @@ export const SettingsPage: React.FC = () => {
                   </code>
                 </div>
                 <div style={{ fontSize: '12.5px', fontWeight: 600, color: 'var(--text-secondary)' }}>
-                  0 MB (queued)
+                  Not implemented
                 </div>
               </div>
 
@@ -191,10 +186,9 @@ export const SettingsPage: React.FC = () => {
             </div>
 
             <div style={{ marginTop: '24px', paddingTop: '16px', borderTop: '1px solid var(--border-divider)', display: 'flex', gap: '12px' }}>
-              <button onClick={handleClearCache} className="btn btn-ghost" style={{ border: '1px solid var(--border-subtle)', gap: 6 }}>
-                <Trash2 size={14} style={{ color: 'var(--accent-rose)' }} />
-                <span>Clear Audio Waveform Cache</span>
-              </button>
+              <p style={{ fontSize: '12.5px', color: 'var(--text-muted)', lineHeight: 1.5 }}>
+                Audio waveform caching is not implemented yet. LUNA currently uses your browser's speech synthesis and does not create cached audio files, so there is nothing to clear.
+              </p>
             </div>
           </div>
         </div>
@@ -295,10 +289,10 @@ export const SettingsPage: React.FC = () => {
 
           <div>
             <h2 style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-main)', marginBottom: '4px' }}>
-              Preferred Local Neural Voice
+              Preferred Browser Voice
             </h2>
             <p style={{ fontSize: '12.5px', color: 'var(--text-muted)', marginBottom: '10px' }}>
-              Offline text-to-speech checkpoint
+              Browser-provided speech voice preference. This setting is not connected to voice selection yet.
             </p>
             <select
               value={voiceProfile}
@@ -314,9 +308,8 @@ export const SettingsPage: React.FC = () => {
                 outline: 'none',
               }}
             >
-              <option value="Luna Calm (Local Neural)">Luna Calm (Local Neural)</option>
-              <option value="Studio Narrator (Local)">Studio Narrator (Local)</option>
-              <option value="E-Ink Voice (Low Power)">E-Ink Voice (Low Power)</option>
+              <option value="Default browser voice">Default browser voice</option>
+              <option value="English browser voice">English browser voice (planned)</option>
             </select>
           </div>
         </div>
