@@ -289,7 +289,7 @@ export const SettingsPage: React.FC = () => {
 
           <div>
             <h2 style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-main)', marginBottom: '4px' }}>
-              Preferred Local Neural Voice
+              Preferred Browser Voice
             </h2>
             <p style={{ fontSize: '12.5px', color: 'var(--text-muted)', marginBottom: '10px' }}>
               Browser-provided speech voice preference. This setting is not connected to voice selection yet.
