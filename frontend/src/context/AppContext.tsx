@@ -71,7 +71,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [voiceProfile, setVoiceProfile] = useState<string>('Default browser voice');
   const speechSessionRef = useRef(0);
   const speechPageRef = useRef(1);
-  const speechBookIdRef = useRef<number | null>(null);
+  const speechBookIdRef = useRef<string | number | null>(null);
   
   // Toast notifications
   const [notification, setNotification] = useState<string | null>(null);
