@@ -26,6 +26,8 @@ export const AudiobooksPage: React.FC = () => {
     setAudioPositionSeconds,
     playbackSpeed,
     setPlaybackSpeed,
+    sleepTimerMinutes,
+    setSleepTimerMinutes,
     voiceProfile,
     setVoiceProfile,
     books,
@@ -33,7 +35,6 @@ export const AudiobooksPage: React.FC = () => {
     setActivePage,
   } = useApp();
 
-  const [sleepTimer, setSleepTimer] = useState<string>('Off');
 
   if (!activeBook) {
     return (
@@ -314,10 +315,11 @@ export const AudiobooksPage: React.FC = () => {
                 <span>Sleep Timer</span>
               </span>
               <select
-                value={sleepTimer}
+                value={sleepTimerMinutes === null ? 'Off' : String(sleepTimerMinutes)}
                 onChange={(e) => {
-                  setSleepTimer(e.target.value);
-                  showNotification(`Sleep timer set to: ${e.target.value}`);
+                  const minutes = e.target.value === 'Off' ? null : Number(e.target.value);
+                  setSleepTimerMinutes(minutes);
+                  showNotification(minutes === null ? 'Sleep timer cancelled.' : `Sleep timer set for ${minutes} minutes.`);
                 }}
                 style={{
                   background: 'var(--bg-input)',
@@ -330,9 +332,8 @@ export const AudiobooksPage: React.FC = () => {
                 }}
               >
                 <option value="Off">Off</option>
-                <option value="15 min">15 minutes</option>
-                <option value="30 min">30 minutes</option>
-                <option value="End of Chapter">End of chapter</option>
+                <option value="15">15 minutes</option>
+                <option value="30">30 minutes</option>
               </select>
             </div>
           </div>

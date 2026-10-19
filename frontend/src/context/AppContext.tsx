@@ -29,6 +29,8 @@ interface AppContextType {
   setAudioPositionSeconds: (pos: number) => void;
   playbackSpeed: number;
   setPlaybackSpeed: (speed: number) => void;
+  sleepTimerMinutes: number | null;
+  setSleepTimerMinutes: (minutes: number | null) => void;
   voiceProfile: string;
   setVoiceProfile: (voice: string) => void;
   playlists: Playlist[];
@@ -67,7 +69,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Audio player state
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
   const [audioPositionSeconds, setAudioPositionSeconds] = useState<number>(0);
-  const [playbackSpeed, setPlaybackSpeed] = useState<number>(1.0);
+  const [playbackSpeed, setPlaybackSpeedState] = useState<number>(1.0);
+  const [sleepTimerMinutes, setSleepTimerMinutes] = useState<number | null>(null);
+  const activeUtteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
+  const setPlaybackSpeed = useCallback((speed: number) => {
+    const safeSpeed = Math.min(2, Math.max(0.5, speed));
+    setPlaybackSpeedState(safeSpeed);
+    if (activeUtteranceRef.current) activeUtteranceRef.current.rate = safeSpeed;
+  }, []);
   const [voiceProfile, setVoiceProfile] = useState<string>('Default browser voice');
   const speechSessionRef = useRef(0);
   const speechPageRef = useRef(1);
@@ -89,6 +98,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const stopSpeech = useCallback(() => {
     speechSessionRef.current += 1;
     if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+    activeUtteranceRef.current = null;
     speechPausedRef.current = false;
     setIsPlaying(false);
   }, []);
@@ -182,10 +192,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           }
           const utterance = new SpeechSynthesisUtterance(chunks[chunkIndex++]);
           utterance.rate = Math.min(2, Math.max(0.5, playbackSpeed));
+          activeUtteranceRef.current = utterance;
           const voices = window.speechSynthesis.getVoices();
           const languageVoice = voices.find((voice) => /^en([-_]|$)/i.test(voice.lang));
           if (languageVoice) utterance.voice = languageVoice;
-          utterance.onend = speakNextChunk;
+          utterance.onend = () => {
+            if (activeUtteranceRef.current === utterance) activeUtteranceRef.current = null;
+            speakNextChunk();
+          };
           utterance.onerror = (event) => {
             if (speechSessionRef.current !== sessionId) return;
             setIsPlaying(false);
@@ -212,6 +226,22 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setAudioPositionSeconds(0);
     void readNextPage();
   }, [activeBook, activeChapter, readerPage, isPlaying, playbackSpeed]);
+
+  // Sleep timer is owned by the app context so it keeps running across pages.
+  useEffect(() => {
+    if (sleepTimerMinutes === null) return;
+    const timeoutId = window.setTimeout(() => {
+      speechSessionRef.current += 1;
+      if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+      activeUtteranceRef.current = null;
+      speechPausedRef.current = false;
+      speechBookIdRef.current = null;
+      setIsPlaying(false);
+      setSleepTimerMinutes(null);
+      showNotification('Sleep timer finished. Audiobook playback stopped.');
+    }, sleepTimerMinutes * 60 * 1000);
+    return () => window.clearTimeout(timeoutId);
+  }, [sleepTimerMinutes]);
 
   // Track elapsed narration time while browser speech is actively playing.
   // Browser speech synthesis does not expose a reliable total duration, so this
@@ -351,6 +381,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setAudioPositionSeconds,
         playbackSpeed,
         setPlaybackSpeed,
+        sleepTimerMinutes,
+        setSleepTimerMinutes,
         voiceProfile,
         setVoiceProfile,
         playlists,
