@@ -12,7 +12,7 @@ import { SettingsPage } from './pages/SettingsPage';
 import { DevicePage } from './pages/DevicePage';
 import { AboutPage } from './pages/AboutPage';
 import { X, Check, LockKeyhole, ShieldCheck } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { API_BASE_URL } from './services/api';
 
 const AppContent: React.FC = () => {
@@ -24,6 +24,36 @@ const AppContent: React.FC = () => {
 
   const developerPages = ['about', 'settings', 'device'];
   const isDeveloperPage = developerPages.includes(activePage);
+  useEffect(() => {
+    const token = sessionStorage.getItem('luna_dev_token');
+    if (!token) return;
+    fetch(`${API_BASE_URL}/api/dev/verify`, { headers: { Authorization: `Bearer ${token}` } })
+      .then((response) => {
+        if (response.ok) setDeveloperUnlocked(true);
+        else {
+          sessionStorage.removeItem('luna_dev_token');
+          setDeveloperUnlocked(false);
+        }
+      })
+      .catch(() => setDeveloperUnlocked(false));
+  }, []);
+
+  useEffect(() => {
+    if (!developerUnlocked || !isDeveloperPage) return;
+    const token = sessionStorage.getItem('luna_dev_token');
+    if (!token) {
+      setDeveloperUnlocked(false);
+      return;
+    }
+    fetch(`${API_BASE_URL}/api/dev/verify`, { headers: { Authorization: `Bearer ${token}` } })
+      .then((response) => {
+        if (!response.ok) {
+          sessionStorage.removeItem('luna_dev_token');
+          setDeveloperUnlocked(false);
+        }
+      })
+      .catch(() => setDeveloperUnlocked(false));
+  }, [activePage, developerUnlocked, isDeveloperPage]);
   const unlockDeveloperArea = async (event: React.FormEvent) => {
     event.preventDefault();
     setDeveloperBusy(true);
