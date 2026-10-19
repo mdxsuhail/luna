@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import './AudiobooksPage.css';
 import { useApp } from '../context/AppContext';
 import { StatusBanner } from '../components/common/StatusBanner';
@@ -13,6 +13,17 @@ import {
 } from 'lucide-react';
 
 export const AudiobooksPage: React.FC = () => {
+  const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
+
+  useEffect(() => {
+    if (!(typeof window !== 'undefined' && 'speechSynthesis' in window && window.speechSynthesis)) return;
+    const synthesis = window.speechSynthesis;
+    const updateVoices = () => setAvailableVoices(synthesis.getVoices());
+    updateVoices();
+    synthesis.addEventListener('voiceschanged', updateVoices);
+    return () => synthesis.removeEventListener('voiceschanged', updateVoices);
+  }, []);
+
   const {
     activeBook,
     setActiveBook,
@@ -97,11 +108,9 @@ export const AudiobooksPage: React.FC = () => {
     if (!isPlaying) togglePlay();
   };
 
-  const voices = [
-    'Default browser voice',
-    'English voice',
-    'System voice',
-  ];
+  const voiceOptions = availableVoices.length > 0
+    ? availableVoices.map((voice) => ({ value: voice.name, label: `${voice.name} (${voice.lang})` }))
+    : [{ value: 'Default browser voice', label: 'Default browser voice' }];
 
   return (
     <div className="page-container">
@@ -250,9 +259,9 @@ export const AudiobooksPage: React.FC = () => {
                   outline: 'none',
                 }}
               >
-                {voices.map((v) => (
-                  <option key={v} value={v}>
-                    {v}
+                {voiceOptions.map((voice) => (
+                  <option key={voice.value} value={voice.value}>
+                    {voice.label}
                   </option>
                 ))}
               </select>

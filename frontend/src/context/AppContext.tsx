@@ -214,9 +214,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           const utterance = new SpeechSynthesisUtterance(chunks[chunkIndex++]);
           utterance.rate = Math.min(2, Math.max(0.5, playbackSpeed));
           activeUtteranceRef.current = utterance;
-          const voices = window.speechSynthesis.getVoices();
-          const languageVoice = voices.find((voice) => /^en([-_]|$)/i.test(voice.lang));
-          if (languageVoice) utterance.voice = languageVoice;
+          const availableVoices = window.speechSynthesis.getVoices();
+          const selectedVoice = availableVoices.find((voice) => voice.name === voiceProfile);
+          const englishVoice = availableVoices.find((voice) => /^en([-_]|$)/i.test(voice.lang));
+          const defaultVoice = availableVoices.find((voice) => voice.default);
+          const preferredVoice = selectedVoice || englishVoice || defaultVoice;
+          if (preferredVoice) utterance.voice = preferredVoice;
           utterance.onend = () => {
             if (activeUtteranceRef.current === utterance) activeUtteranceRef.current = null;
             speakNextChunk();
@@ -253,7 +256,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setIsPlaying(true);
     setAudioPositionSeconds(0);
     void readNextPage();
-  }, [activeBook, activeChapter, readerPage, isPlaying, playbackSpeed]);
+  }, [activeBook, activeChapter, readerPage, isPlaying, playbackSpeed, voiceProfile]);
 
   // Sleep timer is owned by the app context so it keeps running across pages.
   useEffect(() => {
