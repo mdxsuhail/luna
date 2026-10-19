@@ -337,6 +337,7 @@ async def import_book(file: UploadFile = File(...)) -> Dict[str, Any]:
                 original_filename=original_filename[:MAX_BOOK_TITLE_CHARS],
                 stored_pdf_path=relative_storage_path,
                 page_count=page_count,
+                file_size_bytes=total_bytes_read,
                 import_timestamp=now_str,
                 extracted_text_status="pending",
             )
@@ -370,7 +371,12 @@ def resolve_registered_pdf(book_id: int) -> tuple[Dict[str, Any], Path]:
             detail="Book not found in database.",
         )
 
-    filename_only = Path(book["stored_pdf_path"]).name
+    stored_path = book.get("stored_pdf_path")
+    if not isinstance(stored_path, str) or not stored_path.startswith("local-data/books/"):
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Invalid PDF storage record.")
+    filename_only = Path(stored_path).name
+    if not filename_only.endswith(".pdf") or filename_only in {"", ".", ".."} or Path(filename_only).name != filename_only:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Invalid PDF storage record.")
     target_file = (BOOKS_DIR / filename_only).resolve()
     if not is_path_within_directory(target_file, BOOKS_DIR):
         raise HTTPException(
