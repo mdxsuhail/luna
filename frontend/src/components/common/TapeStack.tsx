@@ -1,0 +1,4 @@
+import React from 'react';
+import './TapeStack.css';
+export interface TapeItem {id:string|number;title:string;meta?:string;accent?:string}
+export const TapeStack:React.FC<{heading:string;tapes:TapeItem[];playingId?:TapeItem['id'];onSelect?:(t:TapeItem)=>void}> = ({heading,tapes,playingId,onSelect}) => <ul className="luna-tapes"><li className="luna-tape-head"><span>{heading}</span><small>LUNA / SIDE A</small></li>{tapes.map((t,i)=><li key={t.id}><button className={'luna-tape '+(t.id===playingId?'is-playing':'')} style={{'--tape-accent':t.accent||'#d8a45d','--tape-tilt':((i%3)-1)*.3+'deg'} as React.CSSProperties} onClick={()=>onSelect?.(t)}><span className="luna-tape-block"/><span className="luna-tape-label"><strong>{t.title}</strong>{t.meta&&<small>{t.meta}</small>}</span></button></li>)}</ul>;
