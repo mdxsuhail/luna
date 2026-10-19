@@ -17,7 +17,14 @@ To build a thorough understanding of LUNA, follow these modules in order:
 | **03** | [Frontend Deep Dive](03-frontend-deep-dive.md) | React 18 component tree, Context state machine, API clients, reader engine, styling | `frontend/src/App.tsx`, `AppContext.tsx`, `api.ts`, `LibraryPage.tsx`, `ReaderPage.tsx` |
 | **04** | [Launcher & DevOps](04-launcher-and-devops.md) | Windows CMD quote parsing rules, background daemon spawning, socket polling, Vite bundler | `start-luna.bat`, `frontend/vite.config.ts`, `package.json` |
 | **05** | [Debugging & Troubleshooting](05-debugging-and-troubleshooting.md) | Real-world bug postmortems, socket collisions, syntax quirks, and diagnostic commands | Shell diagnostics, port utilities |
-| **06** | [Viva & Technical Interview Prep](06-viva-and-interview-prep.md) | 25+ academic evaluation and engineering interview questions with rigorous technical answers | Full stack concepts, ASGI, ACID, CORS, security |
+| **06** | [Viva & Technical Interview Prep](06-viva-and-interview-prep.md) | Academic evaluation and engineering interview preparation | Full-stack concepts, ASGI, ACID, CORS, security |
+| **07** | [Security Fixes & Tests](07-security-fixes-and-tests.md) | Regression testing, path safety, CI checks | Backend tests and GitHub Actions |
+| **08** | [Functional PDF Reader](08-functional-pdf-reader.md) | PDF viewing flow and known reader limits | Reader page and PDF streaming |
+| **09** | [PDF Text Extraction API](09-pdf-text-extraction-api.md) | One-page selectable text extraction | FastAPI, pypdf |
+| **10–11** | [Security Hardening](10-security-hardening.md) and [Advanced Local API Security](11-advanced-local-api-security.md) | Local host/origin and request-size defenses | Middleware and security tests |
+| **12** | [Browser Audiobook & Playback State](12-browser-audiobook-and-playback-state.md) | Speech synthesis, timer, refs and playback limits | AppContext, AudiobooksPage, API client |
+| **13** | [Current UI & Library Experience](13-current-ui-and-library-experience.md) | Pages, reusable components and actual persistence | App shell, library, dashboard, reader, playlists |
+| **14** | [Developer Access Gate](14-developer-access-gate.md) | Local code, signed session token, gated pages | App.tsx, backend login/verify routes |
 
 ---
 
@@ -82,3 +89,33 @@ This section tracks the review status of every source file in the repository to 
 1. **Automated Backend OCR / TTS**: The database table contains `extracted_text_status TEXT DEFAULT 'pending'`, but `backend/main.py` does not yet contain a background OCR or TTS worker. This is accurately documented as a future pipeline rather than claimed as working code.
 2. **Client-Side Playlists**: Playlist creation and track lists in `frontend/src/pages/PlaylistsPage.tsx` currently run off client-side mock data (`mockPlaylists`) because backend audio/playlist CRUD endpoints have not yet been implemented.
 3. **Hardware Companion**: The folder `optional-device/` is currently empty. The handbook documents the proposed USB/BLE communication pattern while clearly emphasizing that LUNA functions 100% independently as a desktop application.
+
+
+---
+
+## Current Feature Truth Table (Reviewed 2026-10-19)
+
+| Feature | Actual implementation | What must not be claimed |
+|---|---|---|
+| PDF import | FastAPI streams an upload to local disk, validates size/header, parses metadata with pypdf, and stores a row in SQLite. | Do not claim OCR or that all arbitrary PDFs are safe to parse. |
+| PDF reading | Browser displays the registered PDF via the local API; reader controls provide a UI around the browser PDF viewer. | Do not claim a custom PDF.js canvas renderer or persistent bookmarks. |
+| PDF text extraction | `GET /api/books/{book_id}/text?page=N` extracts selectable text on demand. | Do not claim extracted text is persisted or scanned pages are OCR'd. |
+| Audiobook/narration | Frontend uses browser Speech Synthesis for extracted text. | Do not claim LUNA generates, caches, or exports MP3/WAV files. |
+| Playback progress | Frontend keeps playback-related state in React and uses an elapsed-time counter. | Do not claim exact audio duration, true seeking, or SQLite persistence. |
+| Playlists | Current playlist state is client-side/mock data. | Do not claim playlist changes survive reload or sync to SQLite. |
+| Settings/About/Device pages | Rendered behind the local developer-code gate. | Do not claim this is a full user-account system or that it protects all backend routes. |
+| Developer login | HMAC-signed token with an expiry, using secrets from local backend environment. | Do not commit real `backend/.env` values or expose the local backend publicly. |
+| Hardware companion | Optional concept/UI only. | ESP32 hardware is not required and a completed hardware connection is not implemented by these UI components. |
+
+## Keeping the Handbook Synchronized
+
+For every feature-changing pull request:
+
+1. List the source files whose behavior changed.
+2. Update the matching chapter(s) and the root README if the public feature description changed.
+3. Update the source-to-handbook map if files or endpoints were added/removed.
+4. Separate verified behavior from intended behavior and known limitations.
+5. Run the relevant tests/build and record the exact result; never write “tested” if the command was not run.
+6. Include documentation in the same pull request as the code change whenever possible.
+
+The handbook is a learning aid, not a substitute for reading the actual source. Code is authoritative if documentation and implementation ever disagree.

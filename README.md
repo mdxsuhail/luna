@@ -5,8 +5,8 @@
 [![License: Apache-2.0](https://img.shields.io/badge/License-Apache--2.0-blue.svg)](LICENSE)
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-3776AB.svg?logo=python&logoColor=white)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-backend-009688.svg?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
-[![React 18](https://img.shields.io/badge/React-18.3-61DAFB.svg?logo=react&logoColor=black)](https://react.dev/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.6-3178C6.svg?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![React](https://img.shields.io/badge/React-current-61DAFB.svg?logo=react&logoColor=black)](https://react.dev/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-current-3178C6.svg?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Vite](https://img.shields.io/badge/Vite-5.4-646CFF.svg?logo=vite&logoColor=white)](https://vitejs.dev/)
 [![SQLite](https://img.shields.io/badge/Database-SQLite3-003B57.svg?logo=sqlite&logoColor=white)](https://www.sqlite.org/)
 
@@ -61,7 +61,7 @@ Modern eBook and audiobook applications frequently impose proprietary DRM format
 
 ### Implemented and Prototype Capabilities
 
- > Feature labels below distinguish implemented functionality from prototypes. LUNA displays imported PDFs using the browser's built-in PDF viewer and now has an on-demand backend endpoint for extracting selectable text from one page. Text-to-speech playback remains planned.
+ > Feature labels below distinguish implemented functionality from prototypes. The frontend can request selectable text from a PDF page and pass it to the browser's built-in Speech Synthesis API. This is browser-based narration, not generation or storage of audiobook files. Check the [Learning Handbook](docs/learning-guide/README.md) for implementation details and limitations.
 
 | Capability | Status | Description |
 |---|---|---|
@@ -71,7 +71,7 @@ Modern eBook and audiobook applications frequently impose proprietary DRM format
 | **Path-Traversal Protected Streaming** | Working | PDF binary delivery endpoint (`/api/books/{id}/pdf`) strictly verifies canonical paths inside `local-data/books/` before streaming. |
 | **Library Management UI** | Working | Grid and list catalog views, real-time title/filename search, category filtering, and document details inspection. |
 | **PDF Reader** | Basic PDF viewing implemented | Displays the original imported PDF through the browser's built-in PDF viewer, served by the local FastAPI backend. The page controls request a page via the PDF viewer URL fragment; browser PDF-viewer behavior may vary. Custom PDF.js rendering, connecting extracted text to the reader UI, and persistent bookmarks are not implemented yet. |
-| **Audiobook Player Interface** | Prototype | Playback controls currently update UI state only. Real audio playback, local TTS generation, and persistent playback position are not implemented yet. |
+| **Browser-based PDF narration** | Basic implementation | The frontend requests selectable page text from the local API and uses the browser's Speech Synthesis API. No MP3/WAV file is generated or cached; voice availability depends on the browser/OS. Accurate seeking and total duration are unavailable. |
 | **Dashboard** | Partial | Library-backed counts can be shown, while activity history and other reading statistics may still be demonstration data. |
 | **Windows Launcher** | Available; verify locally | `start-luna.bat` starts separate backend/frontend windows and waits for ports. It has not been verified on every Windows/PowerShell setup. |
 
@@ -79,7 +79,7 @@ Modern eBook and audiobook applications frequently impose proprietary DRM format
 
 - **In-Progress (UI-Driven)**: Audiobook playlist creation and manual chapter management are currently operated in the client-side state machine pending dedicated backend playlist persistence endpoints.
 - **Partially implemented**: `GET /api/books/{id}/text?page=1` extracts selectable text from one page on demand. It is not yet connected to the Reader UI, does not save extracted text, and cannot OCR scanned pages.
-- **Planned**: Local Text-to-Speech (TTS) engine. The current audiobook controls are a UI prototype and do not produce sound.
+- **Planned**: OCR for scanned PDFs, durable playback/reading progress, semantic PDF outline/chapter extraction, and a true seekable audio-file pipeline. Current narration depends on the browser speech engine and selectable PDF text.
 - **Planned (Optional Accessory)**: Experimental USB/Bluetooth synchronization module for external ESP32-based e-paper displays.
 
 ---
@@ -115,7 +115,7 @@ graph TD
 
 ## Technology Stack
 
-The repository uses a curated set of dependencies with no external cloud services:
+The repository uses a local-first stack with no paid cloud API requirement. For exact installed frontend package versions, use `frontend/package.json` and `frontend/package-lock.json`; for Python dependencies, use `backend/requirements.txt`.
 
 | Component | Technology | Version | Purpose & Implementation Details |
 |---|---|---|---|
@@ -124,11 +124,11 @@ The repository uses a curated set of dependencies with no external cloud service
 | **PDF Engine** | pypdf | `^5.0` | Pure-Python PDF parser for page counting, encryption inspection, and metadata extraction. |
 | **Multipart Parser** | python-multipart | `*` | Handles multipart form-data streams for file ingestion without loading entire payloads into RAM. |
 | **Database** | SQLite3 | Native Python | Embedded relational database engine stored at `local-data/database/luna.db`. |
-| **Frontend Framework** | React | `18.3.1` | Declarative UI layer utilizing hooks and custom context state management. |
-| **Language** | TypeScript | `5.6.2` | Static type safety across all frontend components, models, and API adaptors. |
+| **Frontend Framework** | React | See `frontend/package.json` | Declarative UI layer utilizing hooks and custom context state management. |
+| **Language** | TypeScript | See `frontend/package.json` | Static type safety across all frontend components, models, and API adapters. |
 | **Build Tool & Bundler** | Vite | `5.4.8` | Ultra-fast development server with Hot Module Replacement (HMR) and optimized rollup production bundling. |
-| **Iconography** | Lucide React | `^0.453` | Consistent, accessible SVG icon set. |
-| **Styling** | Vanilla CSS | CSS3 Tokens | Bespoke glassmorphism design system using native CSS variables (`--bg-primary`, `--accent-emerald`, etc.). |
+| **Iconography** | Lucide React | See `frontend/package.json` | SVG icon set used throughout the UI. |
+| **Styling** | Vanilla CSS | CSS custom properties | Bespoke design system using native CSS variables and component styles. |
 
 ---
 
@@ -142,7 +142,7 @@ The repository uses a curated set of dependencies with no external cloud service
 | **Dashboard** | `docs/screenshots/dashboard.png` | Library overview, reading streaks, recent books, and system status indicator. |
 | **Book Library** | `docs/screenshots/library.png` | Book catalog with grid/list toggle, live search, and PDF drag-and-drop import modal. |
 | **Distraction-Free Reader** | `docs/screenshots/reader.png` | Full-screen reading canvas with font controls, theme toggles, and table of contents. |
-| **Audiobook Player** | `docs/screenshots/player.png` | Persistent playback bar with scrubbing slider, speed multipliers, and chapter indicators. |
+| **Audiobook Player** | `docs/screenshots/player.png` | Browser speech controls and elapsed-time display. Seeking/total duration are not reliably supported by Speech Synthesis. |
 
 ### How to Capture & Update Project Screenshots
 1. Launch LUNA locally using the instructions below.
@@ -221,7 +221,7 @@ npm install
 
 ### Option A: Automated Launch (Windows Only)
 
-A verified batch launcher is provided in the repository root that checks prerequisites, detects port collisions, spawns backend and frontend servers, and launches the browser once ports are confirmed listening:
+A Windows batch launcher is provided in the repository root. Its behavior can vary by machine; if it fails, use the manual commands below:
 
 ```cmd
 start-luna.bat
@@ -378,6 +378,21 @@ sequenceDiagram
         UI->>User: Update Library & Show Toast Notification
     end
 ```
+
+---
+
+## Learning Handbook (Recommended for Students)
+
+The source code is accompanied by a step-by-step engineering handbook designed to help you explain the project during a college evaluation:
+
+- [Open the LUNA Learning Handbook](docs/learning-guide/README.md)
+- Architecture and end-to-end data flow
+- Backend, SQLite schema, PDF ingestion and path-safety controls
+- Frontend components, shared React state and API calls
+- PDF text extraction and browser-based narration
+- Current UI behavior, developer access gate, debugging and viva preparation
+
+**Documentation rule:** when a code change changes behavior, update the relevant handbook chapter and this README in the same pull request. Clearly label what is implemented, prototype-only, or planned. Never describe a UI control as persistent unless the implementation writes to disk/database or another durable store.
 
 ---
 
