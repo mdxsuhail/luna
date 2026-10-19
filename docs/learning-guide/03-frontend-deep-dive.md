@@ -1,12 +1,12 @@
 # Module 03: Frontend Deep Dive
 
-This module provides a comprehensive technical breakdown of the LUNA frontend application. The frontend is built with **React 18**, **TypeScript 5.6**, and **Vite 5.4**, using native CSS3 custom properties for its design system.
+This module provides a comprehensive technical breakdown of the LUNA frontend application. The frontend is built with **React (see `frontend/package.json`), TypeScript (see `frontend/package.json`), and Vite 5.4, using native CSS3 custom properties for its design system.
 
 ---
 
 ## 1. Frontend Architecture & State Flow
 
-LUNA employs the **React Context API** rather than heavy external state management libraries (like Redux or MobX). Because LUNA is an offline, single-user desktop application, React's built-in `createContext` and `useReducer`/`useState` hooks provide high performance and zero external bundle overhead.
+LUNA employs the **React Context API** rather than heavy external state management libraries (like Redux or MobX). Because LUNA is an offline, single-user desktop application, React's built-in `createContext` and `useState`, `useEffect`, `useCallback`, and `useRef` hooks provide high performance and zero external bundle overhead.
 
 ```
 ┌──────────────────────────────────────────────────────────┐
