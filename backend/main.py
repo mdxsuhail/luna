@@ -10,6 +10,7 @@ import time
 import hmac
 import hashlib
 import base64
+import binascii
 import json
 from pathlib import Path
 from typing import List, Dict, Any
@@ -221,7 +222,7 @@ def developer_verify(request: Request) -> Dict[str, bool]:
         payload = json.loads(base64.urlsafe_b64decode(payload_part + "=" * (-len(payload_part) % 4)))
         if payload.get("role") != "developer" or int(payload.get("exp", 0)) < int(time.time()):
             raise ValueError("expired")
-    except (ValueError, TypeError, json.JSONDecodeError):
+    except (ValueError, TypeError, json.JSONDecodeError, binascii.Error):
         raise HTTPException(status_code=401, detail="Developer login expired. Please sign in again.")
     return {"authenticated": True}
 
