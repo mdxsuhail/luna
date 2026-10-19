@@ -6,7 +6,6 @@ import { Chapter, Book } from '../types';
 import {
   Play,
   Pause,
-  Clock,
   Mic,
   Moon,
   HardDrive,
@@ -369,9 +368,8 @@ export const AudiobooksPage: React.FC = () => {
                         </div>
                       </div>
 
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: '12px', color: 'var(--text-muted)' }}>
-                        <Clock size={13} />
-                        <span>{chap.audioDuration}</span>
+                      <div className="audio-studio-track-action">
+                        {isCurrent && isPlaying ? <span className="audio-studio-now-playing">NOW PLAYING</span> : <Play size={14} />}
                       </div>
                     </div>
                   );
