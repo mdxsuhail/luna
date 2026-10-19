@@ -14,7 +14,6 @@ export const PersistentPlayer: React.FC = () => {
   const {
     activeBook,
     activeChapter,
-    readerPage,
     isPlaying,
     togglePlay,
     audioPositionSeconds,
