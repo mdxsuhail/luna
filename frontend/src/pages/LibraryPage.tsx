@@ -5,7 +5,7 @@ import { ShelfCarousel } from '../components/library/ShelfCarousel';
 import { BookListRow } from '../components/library/BookListRow';
 import { Modal } from '../components/common/Modal';
 import { Book, ApiBook } from '../types';
-import { uploadBookPdf, getBookPdfUrl } from '../services/api';
+import { uploadBookPdf, getBookPdfUrl, deleteBookPdf } from '../services/api';
 import {
   Search,
   LayoutGrid,
@@ -41,6 +41,7 @@ export const LibraryPage: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [viewMode, setViewMode] = useState<'grid' | 'list' | 'shelf'>('grid');
   const [selectedBook, setSelectedBook] = useState<Book | null>(null);
+  const [isDeletingBook, setIsDeletingBook] = useState(false);
 
   // Import Modal & Upload State
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
@@ -50,6 +51,26 @@ export const LibraryPage: React.FC = () => {
   const [uploadSuccessBook, setUploadSuccessBook] = useState<ApiBook | null>(null);
   const [isDragging, setIsDragging] = useState<boolean>(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const handleDeleteBook = async (book: Book) => {
+    const confirmed = window.confirm(`Permanently delete "${book.title}" and its PDF from this device?`);
+    if (!confirmed) return;
+
+    setIsDeletingBook(true);
+    setUploadError(null);
+    try {
+      await deleteBookPdf(book.id);
+      setSelectedBook(null);
+      await refreshBooks();
+      showNotification(`Deleted "${book.title}".`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Could not delete this PDF.';
+      setUploadError(message);
+      showNotification(message);
+    } finally {
+      setIsDeletingBook(false);
+    }
+  };
 
   const categories = ['All', 'Document', 'Philosophy', 'Engineering', 'Science'];
 
@@ -572,10 +593,11 @@ export const LibraryPage: React.FC = () => {
               rel="noopener noreferrer"
               className="btn btn-ghost"
               style={{ border: '1px solid var(--border-subtle)', textDecoration: 'none' }}
-              title="Stream PDF directly from local-data/books/"
+              title="Open the original PDF in a new tab"
             >
               <Download size={14} />
-              <span>Stream PDF</span>
+              <span>Open PDF</span>
+            </a>
             <button
               type="button"
               className="btn btn-sm btn-ghost"
@@ -586,7 +608,6 @@ export const LibraryPage: React.FC = () => {
             >
               {isDeletingBook ? 'Deleting…' : 'Delete PDF'}
             </button>
-            </a>
 
             <button
               onClick={() => {
