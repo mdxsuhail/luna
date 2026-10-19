@@ -131,37 +131,61 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           throw new Error(payload.message || `No selectable text found on page ${speechPageRef.current}. This PDF may be scanned and require OCR.`);
         }
 
-        // Keep utterances reasonably sized: some browser speech engines silently
-        // fail or truncate very long single utterances.
-        const chunks = pageText.match(/[^.!?]+[.!?]+|[^.!?]+$/g) || [pageText];
-        const utteranceText = chunks.join(' ').trim();
-        const utterance = new SpeechSynthesisUtterance(utteranceText);
-        utterance.rate = Math.min(2, Math.max(0.5, playbackSpeed));
-        const voices = window.speechSynthesis.getVoices();
-        const languageVoice = voices.find((voice) => /^en([-_]|$)/i.test(voice.lang));
-        if (languageVoice) utterance.voice = languageVoice;
-
-        utterance.onend = () => {
-          if (speechSessionRef.current !== sessionId) return;
-          if (speechPageRef.current < totalPages) {
-            speechPageRef.current += 1;
-            setReaderPage(speechPageRef.current);
-            setAudioPositionSeconds(speechPageRef.current - 1);
-            void readNextPage();
+        // Split long pages into small utterances. Some browser speech engines
+        // truncate long utterances or fail without reporting a useful error.
+        const sentences = pageText.match(/[^.!?]+[.!?]+|[^.!?]+$/g) || [pageText];
+        const chunks: string[] = [];
+        let buffer = '';
+        for (const sentence of sentences) {
+          const cleanSentence = sentence.trim();
+          if (!cleanSentence) continue;
+          if (buffer && (buffer.length + cleanSentence.length + 1) > 240) {
+            chunks.push(buffer);
+            buffer = '';
+          }
+          if (cleanSentence.length > 240) {
+            if (buffer) chunks.push(buffer);
+            buffer = '';
+            for (let offset = 0; offset < cleanSentence.length; offset += 240) {
+              chunks.push(cleanSentence.slice(offset, offset + 240));
+            }
           } else {
-            setIsPlaying(false);
-            speechBookIdRef.current = null;
-            showNotification('Finished reading the PDF aloud.');
+            buffer = buffer ? `${buffer} ${cleanSentence}` : cleanSentence;
           }
-        };
-        utterance.onerror = (event) => {
+        }
+        if (buffer) chunks.push(buffer);
+        let chunkIndex = 0;
+        const speakNextChunk = () => {
           if (speechSessionRef.current !== sessionId) return;
-          setIsPlaying(false);
-          if (event.error !== 'canceled' && event.error !== 'interrupted') {
-            showNotification(`Speech playback failed (${event.error}). Check your device volume and browser speech settings, then try again.`);
+          if (chunkIndex >= chunks.length) {
+            if (speechPageRef.current < totalPages) {
+              speechPageRef.current += 1;
+              setReaderPage(speechPageRef.current);
+              setAudioPositionSeconds(speechPageRef.current - 1);
+              void readNextPage();
+            } else {
+              setIsPlaying(false);
+              speechBookIdRef.current = null;
+              showNotification('Finished reading the PDF aloud.');
+            }
+            return;
           }
+          const utterance = new SpeechSynthesisUtterance(chunks[chunkIndex++]);
+          utterance.rate = Math.min(2, Math.max(0.5, playbackSpeed));
+          const voices = window.speechSynthesis.getVoices();
+          const languageVoice = voices.find((voice) => /^en([-_]|$)/i.test(voice.lang));
+          if (languageVoice) utterance.voice = languageVoice;
+          utterance.onend = speakNextChunk;
+          utterance.onerror = (event) => {
+            if (speechSessionRef.current !== sessionId) return;
+            setIsPlaying(false);
+            if (event.error !== 'canceled' && event.error !== 'interrupted') {
+              showNotification(`Speech playback failed (${event.error}). Check your device volume and browser speech settings, then try again.`);
+            }
+          };
+          window.speechSynthesis.speak(utterance);
         };
-        window.speechSynthesis.speak(utterance);
+        speakNextChunk();
       } catch (error) {
         if (speechSessionRef.current !== sessionId) return;
         setIsPlaying(false);
