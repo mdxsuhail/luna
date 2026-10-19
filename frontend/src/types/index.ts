@@ -17,6 +17,7 @@ export interface ApiBook {
   original_filename: string;
   stored_pdf_path: string;
   page_count: number;
+  file_size_bytes?: number;
   import_timestamp: string;
   extracted_text_status: string;
 }

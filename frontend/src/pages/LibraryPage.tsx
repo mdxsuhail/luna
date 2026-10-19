@@ -80,9 +80,9 @@ export const LibraryPage: React.FC = () => {
     setUploadError(null);
     setUploadSuccessBook(null);
 
-    // Validate file extension and MIME
+    // Check the claimed file type for helpful feedback; the backend remains authoritative.
     if (!file.name.toLowerCase().endsWith('.pdf') && file.type !== 'application/pdf') {
-      setUploadError('Invalid file type. Please select a genuine PDF document (.pdf).');
+      setUploadError('This file does not appear to be a PDF. Choose a .pdf file. The server performs the final PDF validation.');
       return;
     }
 
@@ -100,7 +100,19 @@ export const LibraryPage: React.FC = () => {
       return;
     }
 
-    setSelectedFile(file);
+    // Read the PDF magic header for early feedback. This is not a substitute for server validation.
+    void file.slice(0, 5).arrayBuffer().then((buffer) => {
+      const header = new TextDecoder().decode(buffer);
+      if (header !== '%PDF-') {
+        setUploadError('The file does not have a valid PDF header. The server also validates uploaded PDFs.');
+        setSelectedFile(null);
+        return;
+      }
+      setSelectedFile(file);
+    }).catch(() => {
+      setUploadError('Could not inspect this file. The server will validate it during upload.');
+      setSelectedFile(file);
+    });
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {

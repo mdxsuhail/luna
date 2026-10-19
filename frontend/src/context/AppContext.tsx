@@ -85,15 +85,36 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   
   // Toast notifications
   const [notification, setNotification] = useState<string | null>(null);
+  const notificationTimeoutRef = useRef<number | null>(null);
 
-  const showNotification = (msg: string) => {
+  const dismissNotification = useCallback(() => {
+    if (notificationTimeoutRef.current !== null) {
+      window.clearTimeout(notificationTimeoutRef.current);
+      notificationTimeoutRef.current = null;
+    }
+    setNotification(null);
+  }, []);
+
+  const showNotification = useCallback((msg: string) => {
+    if (notificationTimeoutRef.current !== null) {
+      window.clearTimeout(notificationTimeoutRef.current);
+    }
     setNotification(msg);
-    setTimeout(() => {
+    notificationTimeoutRef.current = window.setTimeout(() => {
       setNotification((curr) => (curr === msg ? null : curr));
+      notificationTimeoutRef.current = null;
     }, 4500);
-  };
+  }, []);
 
-  const dismissNotification = () => setNotification(null);
+  useEffect(() => () => {
+    if (notificationTimeoutRef.current !== null) {
+      window.clearTimeout(notificationTimeoutRef.current);
+    }
+    speechSessionRef.current += 1;
+    if ('speechSynthesis' in window && window.speechSynthesis) {
+      window.speechSynthesis.cancel();
+    }
+  }, []);
 
   const stopSpeech = useCallback(() => {
     speechSessionRef.current += 1;
@@ -260,11 +281,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }, 1000);
     return () => window.clearInterval(timerId);
   }, [isPlaying]);
-
-  useEffect(() => () => {
-    speechSessionRef.current += 1;
-    if ('speechSynthesis' in window) window.speechSynthesis.cancel();
-  }, []);
 
   /**
    * Fetches health status and books from the FastAPI backend.

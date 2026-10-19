@@ -34,7 +34,7 @@ export function adaptApiBook(apiBook: ApiBook): Book {
     author: 'Local File',
     category: 'Document',
     format: 'PDF',
-    fileSize: `${Math.max(1, Math.round(apiBook.page_count * 0.15))} MB`,
+    fileSize: typeof apiBook.file_size_bytes === 'number' ? `${(apiBook.file_size_bytes / (1024 * 1024)).toFixed(2)} MB` : 'Unknown size',
     totalPages: apiBook.page_count || 1,
     currentPage: 1,
     progressPercentage: 0,
@@ -121,29 +121,42 @@ export async function fetchBooks(): Promise<ApiBook[]> {
  * Uploads a local PDF eBook file to the backend via POST /api/books/import.
  * Employs standard multipart/form-data with size and MIME validation on backend.
  */
-export async function uploadBookPdf(file: File): Promise<ApiBook> {
+export async function uploadBookPdf(file: File, signal?: AbortSignal): Promise<ApiBook> {
   const formData = new FormData();
   formData.append('file', file);
+  const controller = new AbortController();
+  const timeoutId = window.setTimeout(() => controller.abort(), 30000);
+  const abortFromCaller = () => controller.abort();
+  signal?.addEventListener('abort', abortFromCaller, { once: true });
 
-  const response = await fetch(`${API_BASE_URL}/api/books/import`, {
-    method: 'POST',
-    body: formData,
-  });
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/books/import`, {
+      method: 'POST',
+      body: formData,
+      signal: controller.signal,
+    });
 
-  if (!response.ok) {
-    let errorMessage = `Upload failed with HTTP ${response.status}`;
-    try {
-      const errorJson = await response.json();
-      if (errorJson && errorJson.detail) {
-        errorMessage = errorJson.detail;
+    if (!response.ok) {
+      let errorMessage = `Upload failed with HTTP ${response.status}`;
+      try {
+        const errorJson = await response.json();
+        if (errorJson && errorJson.detail) errorMessage = errorJson.detail;
+      } catch {
+        // Ignore a non-JSON error response.
       }
-    } catch {
-      // ignore json parse error
+      throw new Error(errorMessage);
     }
-    throw new Error(errorMessage);
-  }
 
-  return await response.json();
+    return await response.json();
+  } catch (error) {
+    if (controller.signal.aborted) {
+      throw new Error(signal?.aborted ? 'PDF upload was cancelled.' : 'PDF upload timed out after 30 seconds. Please try again.');
+    }
+    throw error;
+  } finally {
+    window.clearTimeout(timeoutId);
+    signal?.removeEventListener('abort', abortFromCaller);
+  }
 }
 
 /**
