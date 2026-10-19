@@ -1,4 +1,5 @@
 import React from 'react';
+import './AudiobooksPage.css';
 import { useApp } from '../context/AppContext';
 import { StatusBanner } from '../components/common/StatusBanner';
 import { Chapter, Book } from '../types';
@@ -37,7 +38,7 @@ export const AudiobooksPage: React.FC = () => {
   if (!activeBook) {
     return (
       <div
-        className="page-container"
+        className="page-container audio-studio-page"
         style={{
           display: 'flex',
           alignItems: 'center',
@@ -109,7 +110,7 @@ export const AudiobooksPage: React.FC = () => {
     <div className="page-container">
       {/* Page Title & Status */}
       <div style={{ marginBottom: '24px' }}>
-        <h1 className="section-title">Audiobook Studio</h1>
+        <h1 className="section-title">Audio Studio</h1>
         <p className="section-subtitle">
           Read selectable text from your PDFs aloud using your browser's built-in speech engine
         </p>
@@ -126,11 +127,12 @@ export const AudiobooksPage: React.FC = () => {
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: 'minmax(320px, 420px) 1fr',
+          gridTemplateColumns: 'minmax(280px, 0.9fr) minmax(0, 1.35fr)',
           gap: '24px',
           alignItems: 'start',
           marginBottom: '32px',
         }}
+        className="audio-studio-layout"
       >
         {/* Left: Active Player Card */}
         <div
@@ -307,12 +309,12 @@ export const AudiobooksPage: React.FC = () => {
                   Chapters & Audio Segments
                 </h3>
                 <p className="section-subtitle">
-                  {activeBook.chapters?.length || 0} synthesized chapter recordings
+                  {activeBook.chapters?.length || 0} available chapters · browser narration
                 </p>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '12px', color: 'var(--accent-emerald)' }}>
                 <HardDrive size={13} />
-                <span>Stored in local-data/audio/</span>
+                <span>LIVE NARRATION</span>
               </div>
             </div>
 
@@ -364,7 +366,7 @@ export const AudiobooksPage: React.FC = () => {
                             {chap.title}
                           </div>
                           <div style={{ fontSize: '11.5px', color: 'var(--text-dim)', marginTop: '2px' }}>
-                            Page {chap.pageNumber} • Browser speech
+                            PAGE {chap.pageNumber} · PDF TEXT
                           </div>
                         </div>
                       </div>
@@ -394,7 +396,7 @@ export const AudiobooksPage: React.FC = () => {
           </div>
 
           {/* Switch to Other Audiobooks */}
-          {audioReadyBooks.length > 0 && (
+          {books.length > 1 && (
             <div
               style={{
                 backgroundColor: 'var(--bg-card)',
@@ -404,11 +406,11 @@ export const AudiobooksPage: React.FC = () => {
               }}
             >
               <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-main)', marginBottom: '14px' }}>
-                Other Audio-Ready Titles in Local Library
+                More from your library
               </h3>
 
               <div style={{ display: 'flex', gap: '14px', overflowX: 'auto', paddingBottom: '6px' }}>
-                {audioReadyBooks.map((b: Book) => (
+                {books.filter((b: Book) => b.id !== activeBook.id).map((b: Book) => (
                   <div
                     key={b.id}
                     onClick={() => {
