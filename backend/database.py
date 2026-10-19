@@ -116,6 +116,7 @@ def get_book_by_id(book_id: int) -> Optional[Dict[str, Any]]:
                 original_filename,
                 stored_pdf_path,
                 page_count,
+                file_size_bytes,
                 import_timestamp,
                 extracted_text_status
             FROM books
@@ -174,6 +175,7 @@ def insert_book(
                 original_filename,
                 stored_pdf_path,
                 page_count,
+                file_size_bytes,
                 import_timestamp,
                 extracted_text_status
             FROM books
