@@ -4,6 +4,7 @@ export type PageType =
   | 'reader'
   | 'audiobooks'
   | 'playlists'
+  | 'profiles'
   | 'settings'
   | 'device'
   | 'about';

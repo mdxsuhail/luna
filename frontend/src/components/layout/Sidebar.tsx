@@ -9,7 +9,8 @@ import {
   Cpu,
   Moon,
   HardDrive,
-  Info
+  Info,
+  UsersRound
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { PageType } from '../../types';
@@ -51,6 +52,12 @@ export const Sidebar: React.FC = () => {
       id: 'playlists',
       label: 'Playlists',
       icon: <ListMusic size={17} />,
+    },
+    {
+      id: 'profiles',
+      label: 'Profiles',
+      icon: <UsersRound size={17} />,
+      badge: 'Demo',
     },
   ];
 
