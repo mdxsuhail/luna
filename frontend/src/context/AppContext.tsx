@@ -266,6 +266,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, [refreshBooks]);
 
   const openBookInReader = (book: Book, chapter?: Chapter) => {
+    // Prevent speech from the previous book continuing after navigation.
+    stopSpeech();
     setActiveBook(book);
     if (chapter) {
       setActiveChapter(chapter);
