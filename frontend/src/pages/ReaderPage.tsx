@@ -28,7 +28,7 @@ export const ReaderPage: React.FC = () => {
   } = useApp();
 
   const [isTocOpen, setIsTocOpen] = useState(true);
-  const [isBookmarked, setIsBookmarked] = useState(false);
+  const [isBookmarked, setIsBookmarked] = useState(false);\n  const [isFullView, setIsFullView] = useState(false);
 
   const themes: { id: ReaderTheme; label: string; bg: string; text: string }[] = [
     { id: 'charcoal', label: 'Charcoal', bg: '#12141c', text: '#f3f4f6' },
@@ -373,6 +373,9 @@ export const ReaderPage: React.FC = () => {
             >
               Open PDF separately
             </a>
+            <button type="button" className="btn btn-sm btn-ghost" onClick={() => setIsFullView((value) => !value)}>
+              {isFullView ? 'Exit full view' : 'Full view'}
+            </button>
           </div>
 
           <iframe
