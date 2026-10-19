@@ -4,13 +4,19 @@ Core FastAPI server exposing health checks, book listing, PDF import, PDF text e
 """
 
 from contextlib import asynccontextmanager
-from datetime import datetime
+from datetime import datetime, timezone
+import os
+import time
+import hmac
+import hashlib
+import base64
+import json
 from pathlib import Path
 from typing import List, Dict, Any
 import uuid
 import logging
 
-from fastapi import FastAPI, UploadFile, File, HTTPException, Query, Request, status
+from fastapi import FastAPI, UploadFile, File, HTTPException, Query, Request, status, Body
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 import pypdf
@@ -147,6 +153,37 @@ async def protect_local_api(request: Request, call_next):
             )
 
     return await call_next(request)
+
+
+def _b64url(data: bytes) -> str:
+    return base64.urlsafe_b64encode(data).rstrip(b"=").decode("ascii")
+
+
+def _developer_token(code: str) -> str | None:
+    """Issue a short-lived signed token only when a local developer secret is configured."""
+    expected_code = os.environ.get("LUNA_DEV_CODE", "")
+    signing_secret = os.environ.get("LUNA_DEV_TOKEN_SECRET", "")
+    if not expected_code or len(expected_code) < 8 or not signing_secret or len(signing_secret) < 32:
+        return None
+    if not hmac.compare_digest(code, expected_code):
+        return ""
+    payload = _b64url(json.dumps({"role": "developer", "exp": int(time.time()) + 3600}, separators=(",", ":")).encode())
+    signature = _b64url(hmac.new(signing_secret.encode(), payload.encode(), hashlib.sha256).digest())
+    return f"{payload}.{signature}"
+
+
+@app.post("/api/dev/login")
+def developer_login(payload: Dict[str, Any] = Body(...)) -> Dict[str, str]:
+    """Verify a developer code without exposing the configured secret to the frontend."""
+    code = payload.get("code")
+    if not isinstance(code, str) or not code:
+        raise HTTPException(status_code=400, detail="Enter the developer login code.")
+    token = _developer_token(code)
+    if token is None:
+        raise HTTPException(status_code=503, detail="Developer access is not configured. Set LUNA_DEV_CODE and LUNA_DEV_TOKEN_SECRET in the local backend environment.")
+    if not token:
+        raise HTTPException(status_code=401, detail="Developer code was not accepted.")
+    return {"token": token, "expires_in": "3600"}
 
 
 @app.get("/api/health")
