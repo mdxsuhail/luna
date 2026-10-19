@@ -103,23 +103,43 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         return;
       }
       window.speechSynthesis.cancel();
-      const response = await fetch(`http://127.0.0.1:8000/api/books/${activeBook.id}/text?page=1`);
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.detail || 'Could not extract text from this PDF.');
-      if (!data.text || !data.text.trim()) {
-        throw new Error(data.message || 'No selectable text found. Scanned PDFs need OCR before speech can read them.');
-      }
-      const utterance = new SpeechSynthesisUtterance(data.text);
-      utterance.rate = playbackSpeed;
-      utterance.onend = () => setIsPlaying(false);
-      utterance.onerror = (event) => {
-        setIsPlaying(false);
-        if (event.error !== 'canceled' && event.error !== 'interrupted') {
-          showNotification(`Speech playback failed: ${event.error}. Try another browser.`);
+      let page = 1;
+      let totalPages = activeBook.totalPages || 1;
+      const readNextPage = async () => {
+        try {
+          const response = await fetch(`http://127.0.0.1:8000/api/books/${activeBook.id}/text?page=${page}`);
+          const data = await response.json();
+          if (!response.ok) throw new Error(data.detail || `Could not extract text from page ${page}.`);
+          totalPages = data.page_count || totalPages;
+          if (!data.text || !data.text.trim()) {
+            throw new Error(data.message || `No selectable text found on page ${page}. Scanned PDFs need OCR before speech can read them.`);
+          }
+          const utterance = new SpeechSynthesisUtterance(data.text);
+          utterance.rate = playbackSpeed;
+          utterance.onend = () => {
+            if (page < totalPages) {
+              page += 1;
+              setAudioPositionSeconds(Math.round(((page - 1) / totalPages) * totalPages * 60));
+              void readNextPage();
+            } else {
+              setIsPlaying(false);
+              showNotification('Finished reading the PDF aloud.');
+            }
+          };
+          utterance.onerror = (event) => {
+            setIsPlaying(false);
+            if (event.error !== 'canceled' && event.error !== 'interrupted') {
+              showNotification(`Speech playback failed: ${event.error}. Try another browser.`);
+            }
+          };
+          window.speechSynthesis.speak(utterance);
+        } catch (error) {
+          setIsPlaying(false);
+          showNotification(error instanceof Error ? error.message : 'Unable to read this PDF page aloud.');
         }
       };
-      window.speechSynthesis.speak(utterance);
       setIsPlaying(true);
+      void readNextPage();
     } catch (error) {
       setIsPlaying(false);
       showNotification(error instanceof Error ? error.message : 'Unable to start text-to-speech.');
