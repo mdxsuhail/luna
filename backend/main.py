@@ -26,6 +26,7 @@ from database import (
     init_db,
     get_all_books,
     get_book_by_id,
+    delete_book_record,
     insert_book,
     DB_PATH,
     BOOKS_DIR,
@@ -389,6 +390,33 @@ def resolve_registered_pdf(book_id: int) -> tuple[Dict[str, Any], Path]:
             detail="The requested PDF file is missing from local disk storage.",
         )
     return book, target_file
+
+
+@app.delete("/api/books/{book_id}", status_code=status.HTTP_200_OK)
+def delete_book(book_id: int) -> Dict[str, Any]:
+    """Delete a registered PDF and its metadata from local storage."""
+    book = get_book_by_id(book_id)
+    if not book:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Book not found.")
+    stored_path = book.get("stored_pdf_path")
+    if not isinstance(stored_path, str) or not stored_path.startswith("local-data/books/"):
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Invalid PDF storage record.")
+    filename_only = Path(stored_path).name
+    if not filename_only.lower().endswith(".pdf") or filename_only in {"", ".", ".."} or Path(filename_only).name != filename_only:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Invalid PDF storage record.")
+    target_file = (BOOKS_DIR / filename_only).resolve()
+    if not is_path_within_directory(target_file, BOOKS_DIR):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied: invalid file path.")
+    # Remove the DB row first; only unlink the file after the record is confirmed.
+    deleted = delete_book_record(book_id)
+    if not deleted:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Book not found.")
+    try:
+        target_file.unlink(missing_ok=True)
+    except OSError as exc:
+        logger.exception("Book %s metadata deleted but PDF file cleanup failed", book_id)
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Book metadata was removed, but the PDF file could not be deleted.") from exc
+    return {"deleted": True, "book_id": book_id}
 
 
 @app.get("/api/books/{book_id}/text")
