@@ -1,0 +1,37 @@
+.about-page{max-width:1240px;margin:0 auto;color:var(--text-main);--about-paper:#e9e2d2;--about-ink:#171714;--about-red:#e24a3b}
+.about-eyebrow,.about-kicker,.about-section-heading>span,.about-mission span{font-size:10px;letter-spacing:.18em;font-weight:700;color:var(--text-muted)}
+.about-eyebrow{display:flex;align-items:center;gap:8px;margin-bottom:18px;color:#d4a77a}
+.about-hero{min-height:360px;display:grid;grid-template-columns:1.05fr .95fr;border:1px solid var(--border-subtle);border-radius:18px;overflow:hidden;background:linear-gradient(125deg,#181a1f,#111218)}
+.about-hero-copy{padding:clamp(28px,5vw,64px);display:flex;flex-direction:column;align-items:flex-start;justify-content:center}
+.about-kicker{color:#b9a58e;margin-bottom:18px}
+.about-hero h1{font-size:clamp(38px,5vw,68px);letter-spacing:-.06em;line-height:.98;font-weight:500}
+.about-hero h1 em{font-family:var(--font-serif);font-weight:400;color:#d8b48b}
+.about-lead{max-width:440px;color:#b8bac3;font-size:14px;line-height:1.8;margin-top:22px}
+.about-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:26px}
+.about-art{min-height:340px;position:relative;overflow:hidden;background:radial-gradient(ellipse at 50% 55%,#4b3c30 0%,#22201f 42%,#15161b 75%)}
+.about-orbit{position:absolute;border:1px solid #e5c8a426;border-radius:50%;width:310px;height:310px;left:50%;top:50%;transform:translate(-50%,-50%)}
+.orbit-two{width:230px;height:230px}
+.about-book{position:absolute;top:50%;left:50%;display:flex;flex-direction:column;justify-content:space-between;box-shadow:8px 18px 28px #0008;border:1px solid #ffffff25;font-family:var(--font-serif);letter-spacing:.06em}
+.book-back{width:112px;height:220px;padding:16px;background:#66715d;color:#e9e2d2;transform:translate(-8%,-58%) rotate(13deg);font-size:18px}
+.book-back small{font:9px var(--font-ui)}
+.book-mid{width:128px;height:238px;padding:18px;background:#a88b69;color:#171714;transform:translate(-76%,-43%) rotate(-10deg);font-size:19px}
+.book-front{width:150px;height:255px;padding:18px;background:linear-gradient(145deg,#eee7d8,#cfc4ac);color:#23231f;transform:translate(-36%,-44%) rotate(4deg)}
+.book-front span,.book-front small{font:8px var(--font-ui);letter-spacing:.16em}
+.book-front strong{font-size:28px;line-height:.95;letter-spacing:-.04em}
+.about-star{position:absolute;right:17%;top:17%;color:#e6b17c;font-size:34px}
+.about-section-heading{padding:54px 0 22px;max-width:700px}
+.about-section-heading h2,.about-mission h2{font-size:clamp(26px,3vw,38px);letter-spacing:-.04em;font-weight:500;margin:12px 0}
+.about-section-heading p,.about-mission>p{font-size:14px;line-height:1.8;color:var(--text-secondary);max-width:660px}
+.about-pillars{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.about-pillars article{position:relative;border:1px solid var(--border-subtle);border-radius:14px;background:var(--bg-card);padding:22px;min-height:200px}
+.about-icon{width:38px;height:38px;border:1px solid #d8b48b50;background:#d8b48b12;color:#d8b48b;border-radius:10px;display:grid;place-items:center;margin-bottom:22px}
+.about-pillars article>span{position:absolute;right:20px;top:22px;color:var(--text-muted);font-size:10px;letter-spacing:.1em}
+.about-pillars h3{font-size:16px;margin-bottom:8px}
+.about-pillars p{font-size:12.5px;line-height:1.7;color:var(--text-secondary)}
+.about-mission{display:grid;grid-template-columns:1fr 1fr;gap:30px;padding:50px 0 28px;align-items:center}
+.about-note{display:flex;gap:14px;border:1px solid #d8b48b40;background:#d8b48b0c;padding:18px;border-radius:12px;color:#d8b48b}
+.about-note strong{font-size:13px;color:var(--text-main)}.about-note p{font-size:12px;line-height:1.7;color:var(--text-secondary);margin-top:5px}
+.about-footer{display:flex;justify-content:space-between;align-items:center;gap:16px;border-top:1px solid var(--border-subtle);margin-top:28px;padding:22px 0 4px;font-size:10px;letter-spacing:.12em;color:var(--text-muted)}
+.about-footer button{display:flex;align-items:center;gap:8px;background:none;border:0;color:var(--text-main);cursor:pointer;font:inherit}
+@media(max-width:800px){.about-hero{grid-template-columns:1fr}.about-art{min-height:270px}.about-pillars{grid-template-columns:1fr}.about-pillars article{min-height:0}.about-mission{grid-template-columns:1fr;gap:8px;padding-top:34px}.about-section-heading{padding-top:36px}}
+@media(max-width:480px){.about-hero-copy{padding:26px 22px}.about-art{min-height:230px}.about-footer{align-items:flex-start;flex-direction:column}.about-lead{font-size:13px}}

@@ -8,7 +8,8 @@ import {
   Settings,
   Cpu,
   Moon,
-  HardDrive
+  HardDrive,
+  Info
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { PageType } from '../../types';
@@ -54,6 +55,7 @@ export const Sidebar: React.FC = () => {
   ];
 
   const secondaryNav: NavItemConfig[] = [
+    { id: 'about', label: 'About LUNA', icon: <Info size={17} /> },
     {
       id: 'device',
       label: 'Device Integration',

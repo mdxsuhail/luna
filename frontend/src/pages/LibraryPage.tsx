@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { useApp } from '../context/AppContext';
 import { BookCard } from '../components/library/BookCard';
+import { ShelfCarousel } from '../components/library/ShelfCarousel';
 import { BookListRow } from '../components/library/BookListRow';
 import { Modal } from '../components/common/Modal';
 import { Book, ApiBook } from '../types';
@@ -38,7 +39,7 @@ export const LibraryPage: React.FC = () => {
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [viewMode, setViewMode] = useState<'grid' | 'list' | 'shelf'>('grid');
   const [selectedBook, setSelectedBook] = useState<Book | null>(null);
 
   // Import Modal & Upload State
@@ -335,6 +336,9 @@ export const LibraryPage: React.FC = () => {
           >
             <List size={14} />
           </button>
+          <button onClick={() => setViewMode('shelf')} className="icon-btn btn-ghost" title="Shelf View" aria-label="Shelf View" style={{width:'28px',height:'28px',borderRadius:'var(--radius-sm)',backgroundColor:viewMode==='shelf'?'var(--bg-elevated)':'transparent',color:viewMode==='shelf'?'var(--text-main)':'var(--text-muted)'}}>
+            <BookOpen size={14} />
+          </button>
         </div>
       </div>
 
@@ -450,6 +454,8 @@ export const LibraryPage: React.FC = () => {
             No books found matching "{searchQuery}".
           </p>
         </div>
+      ) : viewMode === 'shelf' ? (
+        <ShelfCarousel books={filteredBooks} onOpen={(book) => openBookInReader(book)} />
       ) : viewMode === 'grid' ? (
         /* Populated Grid View */
         <div

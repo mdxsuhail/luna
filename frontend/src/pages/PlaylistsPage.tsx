@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { Playlist, PlaylistTrack, Book, Chapter } from '../types';
 import { Modal } from '../components/common/Modal';
+import { TapeStack } from '../components/common/TapeStack';
 import {
   ListMusic,
   Plus,
@@ -172,6 +173,17 @@ export const PlaylistsPage: React.FC = () => {
                 <span>Play All</span>
               </button>
             </div>
+          </div>
+
+          <div style={{ marginBottom: '22px' }}>
+            <TapeStack
+              heading="Listening queue"
+              tapes={selectedPlaylist.tracks.map((track) => ({ id: track.id, title: track.chapterTitle, meta: track.duration + ' · ' + track.bookTitle, accent: '#d8a45d' }))}
+              onSelect={(tape) => {
+                const track = selectedPlaylist.tracks.find((item) => item.id === tape.id);
+                if (track) handlePlayTrack(track);
+              }}
+            />
           </div>
 
           {/* Track List */}

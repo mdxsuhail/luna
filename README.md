@@ -595,3 +595,7 @@ This project is licensed under the **Apache License 2.0**. See the [LICENSE](LIC
 <p align="center">
   <sub>LUNA is an active, open-source offline-first reading platform developed for readers and learners.</sub>
 </p>
+
+## Editorial interface
+
+The interface includes an About LUNA mission page, a book-spine Shelf view in the library, folder-style dashboard panels, and a cassette-inspired playlist queue. These are responsive UI components built around existing app state; audio synthesis remains under development. See [the editorial UI notes](docs/editorial-ui.md).
