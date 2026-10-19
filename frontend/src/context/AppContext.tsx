@@ -288,8 +288,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       audioSeconds: 600,
       sampleContent: ['Audio synthesis ready.']
     };
+    // Loading a book is not the same as starting speech playback.
+    // Keep Play in its ready state until the user explicitly presses it.
+    stopSpeech();
+    speechPageRef.current = Math.max(1, targetChapter.pageNumber || 1);
     setActiveChapter(targetChapter);
-    setIsPlaying(true);
+    setIsPlaying(false);
     setActivePage('audiobooks');
   };
 
