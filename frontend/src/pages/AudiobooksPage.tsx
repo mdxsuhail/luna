@@ -176,31 +176,9 @@ export const AudiobooksPage: React.FC = () => {
             {activeBook.title} • {activeBook.originalFilename}
           </div>
 
-          {/* Timeline Scrub Bar */}
-          <div style={{ width: '100%', marginBottom: '20px' }}>
-            <div
-              className="progress-track-wrapper"
-              style={{ height: '6px' }}
-              role="progressbar"
-              aria-label="Elapsed narration time"
-              aria-valuemin={0}
-              aria-valuenow={audioPositionSeconds}
-            >
-              <div className="progress-fill" style={{ width: '0%' }} />
-            </div>
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                fontSize: '11.5px',
-                color: 'var(--text-muted)',
-                marginTop: '8px',
-                fontVariantNumeric: 'tabular-nums',
-              }}
-            >
-              <span>{formatTime(audioPositionSeconds)} elapsed</span>
-              <span>Duration unavailable</span>
-            </div>
+          {/* Browser speech has no reliable duration or seek API; show elapsed time only. */}
+          <div style={{ width: '100%', marginBottom: '20px', fontSize: '12px', color: 'var(--text-muted)', fontVariantNumeric: 'tabular-nums' }}>
+            {formatTime(audioPositionSeconds)} elapsed · Duration and seeking unavailable
           </div>
 
           {/* Playback Controls */}
