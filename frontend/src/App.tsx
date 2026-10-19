@@ -10,6 +10,7 @@ import { AudiobooksPage } from './pages/AudiobooksPage';
 import { PlaylistsPage } from './pages/PlaylistsPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { DevicePage } from './pages/DevicePage';
+import { AboutPage } from './pages/AboutPage';
 import { X, Check } from 'lucide-react';
 
 const AppContent: React.FC = () => {
@@ -31,6 +32,8 @@ const AppContent: React.FC = () => {
         return <SettingsPage />;
       case 'device':
         return <DevicePage />;
+      case 'about':
+        return <AboutPage />;
       default:
         return <DashboardPage />;
     }
