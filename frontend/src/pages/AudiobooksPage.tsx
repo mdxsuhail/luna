@@ -5,8 +5,6 @@ import { Chapter, Book } from '../types';
 import {
   Play,
   Pause,
-  RotateCcw,
-  RotateCw,
   Clock,
   Mic,
   Moon,
@@ -88,20 +86,11 @@ export const AudiobooksPage: React.FC = () => {
   }
 
   const audioReadyBooks = books.filter((b: Book) => b.hasAudio);
-  const totalSeconds = activeChapter?.audioSeconds || 1800;
-  const progressPct = Math.min(100, Math.max(0, (audioPositionSeconds / totalSeconds) * 100));
 
   const formatTime = (secs: number) => {
     const m = Math.floor(secs / 60);
     const s = Math.floor(secs % 60);
     return `${m}:${s < 10 ? '0' : ''}${s}`;
-  };
-
-  const handleSeek = (e: React.MouseEvent<HTMLDivElement>) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const clickX = e.clientX - rect.left;
-    const ratio = Math.max(0, Math.min(1, clickX / rect.width));
-    setAudioPositionSeconds(Math.round(ratio * totalSeconds));
   };
 
   const handleSelectChapter = (chap: Chapter) => {
@@ -187,42 +176,13 @@ export const AudiobooksPage: React.FC = () => {
             {activeBook.title} • {activeBook.originalFilename}
           </div>
 
-          {/* Timeline Scrub Bar */}
-          <div style={{ width: '100%', marginBottom: '20px' }}>
-            <div
-              className="progress-track-wrapper"
-              style={{ height: '6px' }}
-              onClick={handleSeek}
-              title="Click to seek"
-            >
-              <div className="progress-fill" style={{ width: `${progressPct}%` }} />
-            </div>
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                fontSize: '11.5px',
-                color: 'var(--text-muted)',
-                marginTop: '8px',
-                fontVariantNumeric: 'tabular-nums',
-              }}
-            >
-              <span>{formatTime(audioPositionSeconds)}</span>
-              <span>{formatTime(totalSeconds)}</span>
-            </div>
+          {/* Browser speech has no reliable duration or seek API; show elapsed time only. */}
+          <div style={{ width: '100%', marginBottom: '20px', fontSize: '12px', color: 'var(--text-muted)', fontVariantNumeric: 'tabular-nums' }}>
+            {formatTime(audioPositionSeconds)} elapsed · Duration and seeking unavailable
           </div>
 
           {/* Playback Controls */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '20px', marginBottom: '24px' }}>
-            <button
-              onClick={() => setAudioPositionSeconds(Math.max(0, audioPositionSeconds - 15))}
-              className="icon-btn btn-ghost"
-              style={{ width: '38px', height: '38px' }}
-              title="Rewind 15 seconds"
-            >
-              <RotateCcw size={17} />
-            </button>
-
             <button
               onClick={togglePlay}
               className="play-pause-btn"
@@ -230,15 +190,6 @@ export const AudiobooksPage: React.FC = () => {
               title={isPlaying ? 'Pause' : 'Play'}
             >
               {isPlaying ? <Pause size={22} /> : <Play size={22} style={{ marginLeft: '3px' }} />}
-            </button>
-
-            <button
-              onClick={() => setAudioPositionSeconds(Math.min(totalSeconds, audioPositionSeconds + 30))}
-              className="icon-btn btn-ghost"
-              style={{ width: '38px', height: '38px' }}
-              title="Fast forward 30 seconds"
-            >
-              <RotateCw size={17} />
             </button>
           </div>
 
