@@ -9,7 +9,7 @@ This note explains the first functional PDF-reader implementation.
 3. The helper in `frontend/src/services/api.ts` builds a local URL such as `http://127.0.0.1:8000/api/books/12/pdf`.
 4. FastAPI looks up that ID in SQLite using `get_book_by_id`.
 5. The backend takes the stored filename, resolves it under the local books directory, and checks that the resolved path remains inside the permitted directory.
-6. FastAPI returns a `FileResponse` with media type `application/pdf`.
+6. FastAPI returns a `FileResponse` with media type `application/pdf` and `content_disposition_type="inline"`. Starlette otherwise defaults to attachment disposition when a filename is supplied, which can trigger downloading instead of embedded viewing.
 7. The `iframe` in `ReaderPage.tsx` displays the returned PDF using the browser's built-in PDF viewer. No cloud service or paid API is required.
 
 ## Important code
