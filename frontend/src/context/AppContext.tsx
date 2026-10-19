@@ -171,7 +171,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             if (speechPageRef.current < totalPages) {
               speechPageRef.current += 1;
               setReaderPage(speechPageRef.current);
-              setAudioPositionSeconds(speechPageRef.current - 1);
               void readNextPage();
             } else {
               setIsPlaying(false);
@@ -210,9 +209,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     window.speechSynthesis.cancel();
     speechPausedRef.current = false;
     setIsPlaying(true);
-    setAudioPositionSeconds(speechPageRef.current - 1);
+    setAudioPositionSeconds(0);
     void readNextPage();
   }, [activeBook, activeChapter, readerPage, isPlaying, playbackSpeed]);
+
+  // Track elapsed narration time while browser speech is actively playing.
+  // Browser speech synthesis does not expose a reliable total duration, so this
+  // is an elapsed-time clock rather than a seekable audio-file timeline.
+  useEffect(() => {
+    if (!isPlaying) return;
+    const timerId = window.setInterval(() => {
+      setAudioPositionSeconds((seconds) => seconds + 1);
+    }, 1000);
+    return () => window.clearInterval(timerId);
+  }, [isPlaying]);
 
   useEffect(() => () => {
     speechSessionRef.current += 1;
