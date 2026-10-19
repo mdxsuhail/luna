@@ -5,7 +5,8 @@ export type PageType =
   | 'audiobooks'
   | 'playlists'
   | 'settings'
-  | 'device';
+  | 'device'
+  | 'about';
 
 export type ReaderTheme = 'charcoal' | 'sepia' | 'paper' | 'oled';
 
