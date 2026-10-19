@@ -150,6 +150,6 @@ export async function uploadBookPdf(file: File): Promise<ApiBook> {
  * Returns the secure streaming URL for an indexed book's PDF file.
  */
 export function getBookPdfUrl(bookId: number | string): string {
-  return `${API_BASE_URL}/api/books/${bookId}/pdf`;
+  return `${API_BASE_URL}/api/books/${encodeURIComponent(String(bookId))}/pdf`;
 }
 
