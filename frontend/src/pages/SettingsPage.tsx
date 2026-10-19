@@ -19,7 +19,6 @@ export const SettingsPage: React.FC = () => {
     setPlaybackSpeed,
     voiceProfile,
     setVoiceProfile,
-    showNotification,
     backendHealth,
     isBackendOnline,
     books,
