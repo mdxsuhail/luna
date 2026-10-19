@@ -42,6 +42,25 @@ CHUNK_SIZE = 1024 * 1024
 logger = logging.getLogger(__name__)
 
 
+def load_local_backend_env() -> None:
+    """Load backend/.env without overriding environment variables already set by the OS."""
+    env_path = Path(__file__).resolve().parent / ".env"
+    if not env_path.is_file():
+        return
+    for raw_line in env_path.read_text(encoding="utf-8").splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        key = key.strip()
+        value = value.strip().strip('"').strip("'")
+        if key and key not in os.environ:
+            os.environ[key] = value
+
+
+load_local_backend_env()
+
+
 def is_path_within_directory(candidate: Path, directory: Path) -> bool:
     """Return True only when candidate resolves to a path inside directory."""
     try:
@@ -184,6 +203,27 @@ def developer_login(payload: Dict[str, Any] = Body(...)) -> Dict[str, str]:
     if not token:
         raise HTTPException(status_code=401, detail="Developer code was not accepted.")
     return {"token": token, "expires_in": "3600"}
+
+
+@app.get("/api/dev/verify")
+def developer_verify(request: Request) -> Dict[str, bool]:
+    """Validate the signed developer token and its one-hour expiry."""
+    signing_secret = os.environ.get("LUNA_DEV_TOKEN_SECRET", "")
+    authorization = request.headers.get("authorization", "")
+    if not signing_secret or len(signing_secret) < 32 or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Developer login required.")
+    token = authorization[7:].strip()
+    try:
+        payload_part, signature_part = token.split(".", 1)
+        expected_signature = _b64url(hmac.new(signing_secret.encode(), payload_part.encode(), hashlib.sha256).digest())
+        if not hmac.compare_digest(signature_part, expected_signature):
+            raise ValueError("signature")
+        payload = json.loads(base64.urlsafe_b64decode(payload_part + "=" * (-len(payload_part) % 4)))
+        if payload.get("role") != "developer" or int(payload.get("exp", 0)) < int(time.time()):
+            raise ValueError("expired")
+    except (ValueError, TypeError, json.JSONDecodeError):
+        raise HTTPException(status_code=401, detail="Developer login expired. Please sign in again.")
+    return {"authenticated": True}
 
 
 @app.get("/api/health")
