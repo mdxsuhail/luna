@@ -3,6 +3,7 @@
 Run from the repository root with:
     python -m unittest discover -s backend/tests -v
 """
+from io import BytesIO
 from pathlib import Path
 import sys
 import tempfile
@@ -15,6 +16,15 @@ if str(BACKEND_DIR) not in sys.path:
 
 from main import extract_page_text, is_allowed_local_host, is_allowed_origin, is_path_within_directory
 from pypdf import PdfReader, PdfWriter
+
+
+def make_blank_pdf_reader():
+    writer = PdfWriter()
+    writer.add_blank_page(width=72, height=72)
+    output = BytesIO()
+    writer.write(output)
+    output.seek(0)
+    return PdfReader(output)
 
 
 class LocalHostValidationTests(unittest.TestCase):
@@ -52,18 +62,14 @@ class PathSafetyTests(unittest.TestCase):
 
 class PdfTextExtractionTests(unittest.TestCase):
     def test_rejects_page_numbers_outside_document(self):
-        writer = PdfWriter()
-        writer.add_blank_page(width=72, height=72)
-        reader = PdfReader(writer)
+        reader = make_blank_pdf_reader()
         with self.assertRaises(ValueError):
             extract_page_text(reader, 0)
         with self.assertRaises(ValueError):
             extract_page_text(reader, 2)
 
     def test_blank_page_returns_empty_text(self):
-        writer = PdfWriter()
-        writer.add_blank_page(width=72, height=72)
-        reader = PdfReader(writer)
+        reader = make_blank_pdf_reader()
         self.assertEqual(extract_page_text(reader, 1), "")
 
 
