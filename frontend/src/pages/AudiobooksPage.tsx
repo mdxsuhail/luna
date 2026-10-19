@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useApp } from '../context/AppContext';
 import { StatusBanner } from '../components/common/StatusBanner';
 import { Chapter, Book } from '../types';
