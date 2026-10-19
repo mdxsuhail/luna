@@ -576,6 +576,16 @@ export const LibraryPage: React.FC = () => {
             >
               <Download size={14} />
               <span>Stream PDF</span>
+            <button
+              type="button"
+              className="btn btn-sm btn-ghost"
+              disabled={isDeletingBook}
+              onClick={() => void handleDeleteBook(selectedBook)}
+              style={{ color: '#b42318', border: '1px solid #e7b6b1' }}
+              title="Permanently delete this PDF from local storage"
+            >
+              {isDeletingBook ? 'Deleting…' : 'Delete PDF'}
+            </button>
             </a>
 
             <button
