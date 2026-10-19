@@ -61,11 +61,18 @@ def init_db() -> None:
                 original_filename TEXT NOT NULL,
                 stored_pdf_path TEXT NOT NULL,
                 page_count INTEGER NOT NULL DEFAULT 0,
+                file_size_bytes INTEGER NOT NULL DEFAULT 0 CHECK (file_size_bytes >= 0),
                 import_timestamp TEXT NOT NULL,
                 extracted_text_status TEXT NOT NULL DEFAULT 'pending'
             );
             """
         )
+        # Add file-size tracking to existing databases without losing imported books.
+        columns = {row["name"] for row in cursor.execute("PRAGMA table_info(books)").fetchall()}
+        if "file_size_bytes" not in columns:
+            cursor.execute("ALTER TABLE books ADD COLUMN file_size_bytes INTEGER NOT NULL DEFAULT 0")
+        # Imported PDFs use generated UUID filenames, so storage paths must be unique.
+        cursor.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_books_stored_pdf_path_unique ON books(stored_pdf_path)")
 
 
 def get_all_books() -> List[Dict[str, Any]]:
@@ -83,6 +90,7 @@ def get_all_books() -> List[Dict[str, Any]]:
                 original_filename,
                 stored_pdf_path,
                 page_count,
+                file_size_bytes,
                 import_timestamp,
                 extracted_text_status
             FROM books
@@ -124,6 +132,7 @@ def insert_book(
     original_filename: str,
     stored_pdf_path: str,
     page_count: int,
+    file_size_bytes: int,
     import_timestamp: str,
     extracted_text_status: str = "pending",
 ) -> Dict[str, Any]:
@@ -140,15 +149,17 @@ def insert_book(
                 original_filename,
                 stored_pdf_path,
                 page_count,
+                file_size_bytes,
                 import_timestamp,
                 extracted_text_status
-            ) VALUES (?, ?, ?, ?, ?, ?);
+            ) VALUES (?, ?, ?, ?, ?, ?, ?);
             """,
             (
                 title,
                 original_filename,
                 stored_pdf_path,
                 page_count,
+                file_size_bytes,
                 import_timestamp,
                 extracted_text_status,
             ),
