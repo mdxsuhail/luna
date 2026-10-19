@@ -166,3 +166,10 @@ export function getBookPdfUrl(bookId: number | string): string {
   return `${API_BASE_URL}/api/books/${encodeURIComponent(String(bookId))}/pdf`;
 }
 
+
+/** Deletes a registered PDF and its local metadata. */
+export async function deleteBookPdf(bookId: number | string): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/api/books/${encodeURIComponent(String(bookId))}`, { method: 'DELETE' });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(payload.detail || `Could not delete PDF (HTTP ${response.status}).`);
+}

@@ -183,3 +183,16 @@ def insert_book(
         )
         row = cursor.fetchone()
         return dict(row)
+
+
+def delete_book_record(book_id: int) -> Optional[Dict[str, Any]]:
+    """Delete one book row and return its former metadata, or None if absent."""
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM books WHERE id = ?", (book_id,))
+        row = cursor.fetchone()
+        if not row:
+            return None
+        book = dict(row)
+        cursor.execute("DELETE FROM books WHERE id = ?", (book_id,))
+        return book
