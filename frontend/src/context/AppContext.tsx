@@ -82,12 +82,48 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const dismissNotification = () => setNotification(null);
 
-  const togglePlay = () => {
+  const togglePlay = async () => {
     if (!activeBook) {
-      showNotification('No audiobook active. Select a book from your library first.');
+      showNotification('No book loaded. Select a PDF from My Library first.');
       return;
     }
-    setIsPlaying((prev) => !prev);
+    if (!('speechSynthesis' in window)) {
+      showNotification('Text-to-speech is not supported by this browser. Try Chrome or Edge.');
+      return;
+    }
+    if (isPlaying) {
+      window.speechSynthesis.pause();
+      setIsPlaying(false);
+      return;
+    }
+    try {
+      if (window.speechSynthesis.paused && window.speechSynthesis.speaking) {
+        window.speechSynthesis.resume();
+        setIsPlaying(true);
+        return;
+      }
+      window.speechSynthesis.cancel();
+      const response = await fetch(`http://127.0.0.1:8000/api/books/${activeBook.id}/text?page=1`);
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.detail || 'Could not extract text from this PDF.');
+      if (!data.text || !data.text.trim()) {
+        throw new Error(data.message || 'No selectable text found. Scanned PDFs need OCR before speech can read them.');
+      }
+      const utterance = new SpeechSynthesisUtterance(data.text);
+      utterance.rate = playbackSpeed;
+      utterance.onend = () => setIsPlaying(false);
+      utterance.onerror = (event) => {
+        setIsPlaying(false);
+        if (event.error !== 'canceled' && event.error !== 'interrupted') {
+          showNotification(`Speech playback failed: ${event.error}. Try another browser.`);
+        }
+      };
+      window.speechSynthesis.speak(utterance);
+      setIsPlaying(true);
+    } catch (error) {
+      setIsPlaying(false);
+      showNotification(error instanceof Error ? error.message : 'Unable to start text-to-speech.');
+    }
   };
 
   /**
