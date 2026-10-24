@@ -90,3 +90,28 @@ A passing workflow means these automated checks passed in GitHub's clean runner.
 - Playlist and some reading-session state are held in frontend memory and are not yet persisted in SQLite.
 
 Do not describe these prototype screens as completed PDF rendering or audiobook playback during a project presentation.
+
+
+## 6. Developer token verification and CORS regression fixes
+
+Files: `backend/main.py`, `backend/tests/test_developer_auth.py`
+
+The developer login and verification endpoints must use the same signing secret. Previously, login could sign a token with the local fallback secret while verification required an environment variable and rejected that same token. The verifier now uses the same configured secret fallback as the issuer, checks the signature and developer role, rejects malformed/oversized tokens, and treats a token as expired when its expiry is equal to or earlier than the current time.
+
+The local developer code is a convenience gate, not production authentication. The checked-in fallback values are public because this repository is public; keep the API on loopback only. Use private `LUNA_DEV_CODE` and `LUNA_DEV_TOKEN_SECRET` values in an untracked `backend/.env` for local overrides. Do not expose the backend to a LAN or the internet.
+
+The CORS method list now includes `DELETE`, which is required for the frontend's PDF-removal request. The host/origin middleware still restricts state-changing requests to the expected local frontend origins.
+
+The regression suite verifies the default and overridden developer configuration, invalid codes, token tampering, expiry, invalid token payloads, and the configured CORS methods. Run all backend tests with:
+
+```powershell
+python -m unittest discover -s backend/tests -v
+```
+
+## 7. Diagnostic UI cleanup
+
+File: `frontend/src/pages/DeveloperPage.tsx`
+
+Developer Mode now contains diagnostics and debugging actions only. The non-functional roadmap cards were removed rather than presenting planned features as working controls. Diagnostic checks reset their loading state in a `finally` block, local-storage test data is cleaned up when possible, warning counts are shown separately from failures, and library refresh now reports its actual success/failure result.
+
+The shared `refreshBooks` function returns a boolean result so callers can communicate the outcome accurately. This is a small contract change: existing callers may continue to await or ignore the returned value.
