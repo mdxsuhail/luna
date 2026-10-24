@@ -33,17 +33,45 @@ export const ProfilesPage: React.FC = () => {
  },[token]);
  const setField = (key:keyof typeof form,value:string) => setForm((old)=>({...old,[key]:value}));
  const submitAuth = async (event:React.FormEvent<HTMLFormElement>) => {
-  event.preventDefault(); setMessage('');
-  if(mode==='signup' && (!/[A-Za-z]/.test(form.password) || !/[0-9]/.test(form.password))) { setMessage('Password must include at least one letter and one number.'); return; }
+  event.preventDefault();
+  if (busy) return;
+  setMessage('');
+  if(mode==='signup' && (!/[A-Za-z]/.test(form.password) || !/[0-9]/.test(form.password))) {
+   setMessage('Password must include at least one letter and one number.');
+   return;
+  }
   setBusy(true);
+  const controller = new AbortController();
+  const timeoutId = window.setTimeout(() => controller.abort(), 15000);
   try {
-   const body = mode==='signup' ? form : {username_or_email:form.username,password:form.password};
-   const response = await fetch(API_BASE_URL + '/api/auth/' + mode,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
-   const payload = await response.json().catch(()=>({})); if(!response.ok) throw new Error(payload.detail || 'Unable to authenticate.');
-   window.sessionStorage.setItem('luna_profile_token',payload.token); setToken(payload.token); setUser(payload.user);
+   const body = mode==='signup'
+    ? {...form, username:form.username.trim(), email:form.email.trim(), display_name:form.display_name.trim()}
+    : {username_or_email:form.username.trim(),password:form.password};
+   const response = await fetch(API_BASE_URL + '/api/auth/' + mode,{
+    method:'POST', headers:{'Content-Type':'application/json',Accept:'application/json'},
+    body:JSON.stringify(body), signal:controller.signal
+   });
+   const payload = await response.json().catch(()=>({}));
+   if(!response.ok) {
+    const detail = payload.detail;
+    const errorText = Array.isArray(detail)
+     ? detail.map((item: {msg?:string; loc?:Array<string|number>}) => {
+        const field = item.loc?.filter((part) => part !== 'body').join(' ');
+        return field ? field + ': ' + (item.msg || 'Invalid value') : (item.msg || 'Invalid value');
+       }).join(' ')
+     : typeof detail === 'string' ? detail : 'Unable to create account. Please check your details and try again.';
+    throw new Error(errorText);
+   }
+   if(typeof payload.token !== 'string' || !payload.user) throw new Error('The server response was incomplete. Please restart the LUNA backend and try again.');
+   window.sessionStorage.setItem('luna_profile_token',payload.token);
+   setUser(payload.user); setToken(payload.token);
    setProfileForm({display_name:payload.user.display_name,role:payload.user.role,bio:payload.user.bio,skill:payload.user.skill});
-   setForm({username:'',email:'',display_name:'',password:''}); setMessage(mode==='signup'?'Account created and saved to the local database.':'Signed in successfully.');
-  } catch(e) { setMessage(e instanceof Error ? e.message : 'Could not connect. Make sure the backend is running.'); } finally { setBusy(false); }
+   setForm({username:'',email:'',display_name:'',password:''});
+   setMessage(mode==='signup'?'Account created successfully and saved on this computer.':'Signed in successfully.');
+  } catch(e) {
+   if(e instanceof Error && e.name==='AbortError') setMessage('The request timed out. Check that the LUNA backend is running, then try again.');
+   else setMessage(e instanceof Error ? e.message : 'Could not connect. Make sure the backend is running.');
+  } finally { window.clearTimeout(timeoutId); setBusy(false); }
  };
  const saveProfile = async (event:React.FormEvent<HTMLFormElement>) => {
   event.preventDefault(); if(!token) return; setBusy(true); setMessage('');
