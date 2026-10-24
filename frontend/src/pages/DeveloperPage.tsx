@@ -8,7 +8,6 @@ import {
   SlidersHorizontal,
   Wrench,
   LockKeyhole,
-  Trash2,
   ArrowRight,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
