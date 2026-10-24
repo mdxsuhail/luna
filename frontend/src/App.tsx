@@ -23,7 +23,9 @@ const AppContent: React.FC = () => {
   const [developerBusy, setDeveloperBusy] = useState(false);
   const [developerError, setDeveloperError] = useState('');
 
-  const developerPages = ['about', 'settings', 'device'];
+  // Only optional hardware integration remains behind the developer gate.
+  // About and Settings are ordinary user-facing pages and must always be accessible.
+  const developerPages = ['device'];
   const isDeveloperPage = developerPages.includes(activePage);
   useEffect(() => {
     const token = sessionStorage.getItem('luna_dev_token');
@@ -145,9 +147,11 @@ const AppContent: React.FC = () => {
         return <PlaylistsPage />;
       case 'profiles':
         return <ProfilesPage />;
-      case 'settings':
-      case 'device':
       case 'about':
+        return <AboutPage />;
+      case 'settings':
+        return <SettingsPage />;
+      case 'device':
         return renderDeveloperPage();
       default:
         return <DashboardPage />;
