@@ -100,11 +100,19 @@ def create_user(username: str, email: str, display_name: str, password: str) -> 
 
 def verify_credentials(username_or_email: str, password: str) -> dict[str, Any] | None:
     """Check credentials with a constant-time hash comparison."""
+    # Resolve username first, then email. This avoids an ambiguous match if one
+    # user's username happens to equal another user's email address.
+    identifier = username_or_email.strip()
     with get_db_connection() as conn:
         row = conn.execute(
-            "SELECT * FROM users WHERE username = ? COLLATE NOCASE OR email = ? COLLATE NOCASE",
-            (username_or_email.strip(), username_or_email.strip()),
+            "SELECT * FROM users WHERE username = ? COLLATE NOCASE",
+            (identifier,),
         ).fetchone()
+        if row is None:
+            row = conn.execute(
+                "SELECT * FROM users WHERE email = ? COLLATE NOCASE",
+                (identifier,),
+            ).fetchone()
     if not row:
         # Perform a dummy scrypt calculation to reduce username-enumeration timing clues.
         _password_hash(password, b"luna-dummy-salt!")
