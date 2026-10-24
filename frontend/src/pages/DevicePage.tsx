@@ -61,7 +61,8 @@ export const DevicePage: React.FC = () => {
       setMessage('USB serial is not connected by this page yet. Use Wi-Fi for this first integration version.');
       return;
     }
-    const host = config.host.trim().replace(/^https?:\\/\\//i, '').replace(/\\/$/, '');
+    let host = config.host.trim().replace('http://', '').replace('https://', '');
+    if (host.endsWith('/')) host = host.slice(0, -1);
     if (!host) {
       setStatus('error');
       setMessage('Enter the ESP32 IP address first. Example: 192.168.1.50');
