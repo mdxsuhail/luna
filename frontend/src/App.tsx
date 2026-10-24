@@ -9,7 +9,7 @@ import { ReaderPage } from './pages/ReaderPage';
 import { AudiobooksPage } from './pages/AudiobooksPage';
 import { PlaylistsPage } from './pages/PlaylistsPage';
 import { SettingsPage } from './pages/SettingsPage';
-import { DevicePage } from './pages/DevicePage';
+import { DeveloperPage } from './pages/DeveloperPage';
 import { AboutPage } from './pages/AboutPage';
 import { ProfilesPage } from './pages/ProfilesPage';
 import { X, Check, LockKeyhole, ShieldCheck } from 'lucide-react';
@@ -23,8 +23,7 @@ const AppContent: React.FC = () => {
   const [developerBusy, setDeveloperBusy] = useState(false);
   const [developerError, setDeveloperError] = useState('');
 
-  // Only optional hardware integration remains behind the developer gate.
-  // About and Settings are ordinary user-facing pages and must always be accessible.
+  // Developer Mode is gated; hardware integration remains a future feature.
   const developerPages = ['device'];
   const isDeveloperPage = developerPages.includes(activePage);
   useEffect(() => {
@@ -130,7 +129,7 @@ const AppContent: React.FC = () => {
         </div>
       );
     }
-    return <>{activePage === 'about' ? <AboutPage /> : activePage === 'settings' ? <SettingsPage /> : <DevicePage />}</>;
+    return <DeveloperPage onLock={lockDeveloperArea} />;
   };
 
   const renderActivePage = () => {

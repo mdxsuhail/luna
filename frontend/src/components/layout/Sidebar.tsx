@@ -6,7 +6,7 @@ import {
   Headphones,
   ListMusic,
   Settings,
-  Cpu,
+  Code2,
   Moon,
   HardDrive,
   Info,
@@ -65,10 +65,9 @@ export const Sidebar: React.FC = () => {
   const secondaryNav: NavItemConfig[] = [
     {
       id: 'device',
-      label: 'Device Integration',
-      icon: <Cpu size={17} />,
-      badge: 'Optional',
-      isFuture: true,
+      label: 'Developer Mode',
+      icon: <Code2 size={17} />,
+      badge: 'Tools',
     },
     {
       id: 'settings',
