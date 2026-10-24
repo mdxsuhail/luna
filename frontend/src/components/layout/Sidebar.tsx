@@ -27,6 +27,7 @@ export const Sidebar: React.FC = () => {
   const { activePage, setActivePage, books, isBackendOnline } = useApp();
 
   const primaryNav: NavItemConfig[] = [
+    { id: 'about', label: 'About LUNA', icon: <Info size={17} /> },
     {
       id: 'dashboard',
       label: 'Dashboard',
@@ -62,7 +63,6 @@ export const Sidebar: React.FC = () => {
   ];
 
   const secondaryNav: NavItemConfig[] = [
-    { id: 'about', label: 'About LUNA', icon: <Info size={17} /> },
     {
       id: 'device',
       label: 'Device Integration',
@@ -92,7 +92,7 @@ export const Sidebar: React.FC = () => {
 
       {/* Main Navigation */}
       <nav className="sidebar-nav">
-        <div className="sidebar-section-title">Library & Reading</div>
+        <div className="sidebar-section-title">Start here</div>
         {primaryNav.map((item) => (
           <button
             key={item.id}
