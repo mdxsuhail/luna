@@ -5,10 +5,16 @@ import hashlib
 import hmac
 import json
 import os
+import sys
 import unittest
+from pathlib import Path
 from unittest.mock import patch
 
 from fastapi.middleware.cors import CORSMiddleware
+
+BACKEND_DIR = Path(__file__).resolve().parents[1]
+if str(BACKEND_DIR) not in sys.path:
+    sys.path.insert(0, str(BACKEND_DIR))
 
 from main import (
     DEFAULT_DEV_CODE,
