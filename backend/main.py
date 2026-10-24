@@ -284,6 +284,8 @@ def _is_valid_developer_token(token: str, now: int | None = None) -> bool:
         if not hmac.compare_digest(signature_part, expected_signature):
             return False
         payload = json.loads(base64.urlsafe_b64decode(payload_part + "=" * (-len(payload_part) % 4)))
+        if not isinstance(payload, dict):
+            return False
         current_time = int(time.time()) if now is None else now
         return payload.get("role") == "developer" and int(payload.get("exp", 0)) > current_time
     except (ValueError, TypeError, json.JSONDecodeError, binascii.Error):
