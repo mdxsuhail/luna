@@ -104,8 +104,8 @@ export const DevicePage: React.FC = () => {
         throw new Error('Enter only an IP address or hostname, without a path, query, or login details.');
       }
       if (!candidate.hostname) throw new Error('Enter a valid IP address or hostname.');
-      // If a full URL includes an explicit port, respect it; otherwise use the port field.
-      if (!/^[a-z][a-z\d+.-]*:\/\//i.test(rawHost)) candidate.port = String(port);
+      // Preserve an explicit URL port; otherwise apply the separately entered port.
+      if (!candidate.port) candidate.port = String(port);
       baseUrl = candidate;
     } catch (error) {
       setStatus('error');
