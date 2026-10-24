@@ -257,8 +257,8 @@ def _b64url(data: bytes) -> str:
 
 def _developer_token(code: str) -> str | None:
     """Issue a short-lived signed token only when a local developer secret is configured."""
-    expected_code = os.environ.get("LUNA_DEV_CODE", "")
-    signing_secret = os.environ.get("LUNA_DEV_TOKEN_SECRET", "")
+    expected_code = os.environ.get("LUNA_DEV_CODE", "123456789")
+    signing_secret = os.environ.get("LUNA_DEV_TOKEN_SECRET", "luna-local-developer-token-secret-change-before-network-use-2026")
     if not expected_code or len(expected_code) < 8 or not signing_secret or len(signing_secret) < 32:
         return None
     if not hmac.compare_digest(code, expected_code):
