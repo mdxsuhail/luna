@@ -38,10 +38,65 @@ export const DevicePage: React.FC = () => {
       if (!saved) return DEFAULT_CONFIG;
       const parsed: unknown = JSON.parse(saved);
       if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) return DEFAULT_CONFIG;
-      const hasScheme = rawHost.startsWith('http://') || rawHost.startsWith('https://');
-      const candidate = hasScheme
+      const candidate = parsed as Partial<DeviceConfig>;
+      return {
+        ...DEFAULT_CONFIG,
+        name: typeof candidate.name === 'string' ? candidate.name : DEFAULT_CONFIG.name,
+        board: typeof candidate.board === 'string' ? candidate.board : DEFAULT_CONFIG.board,
+        transport: candidate.transport === 'usb' ? 'usb' : 'wifi',
+        host: typeof candidate.host === 'string' ? candidate.host : '',
+        port: typeof candidate.port === 'string' ? candidate.port : DEFAULT_CONFIG.port,
+        deviceId: typeof candidate.deviceId === 'string' ? candidate.deviceId : '',
+        protocol: candidate.protocol === 'https' ? 'https' : 'http',
+      };
+    } catch {
+      return DEFAULT_CONFIG;
+    }
+  });
+  const [status, setStatus] = useState<'idle' | 'checking' | 'connected' | 'error'>('idle');
+  const [message, setMessage] = useState('Enter your ESP32 connection details, then test the connection.');
+  const [deviceInfo, setDeviceInfo] = useState<DeviceInfo | null>(null);
+  const [showProtocol, setShowProtocol] = useState(false);
+
+  useEffect(() => {
+    try { window.localStorage.setItem(STORAGE_KEY, JSON.stringify(config)); } catch { /* Storage may be disabled. */ }
+  }, [config]);
+
+  const update = (field: keyof DeviceConfig, value: string) => {
+    setConfig(current => ({ ...current, [field]: value }));
+    setStatus('idle');
+    setDeviceInfo(null);
+  };
+
+  const testConnection = async () => {
+    if (config.transport !== 'wifi') {
+      setStatus('error');
+      setMessage('USB serial is not connected by this page yet. Use Wi-Fi for this first integration version.');
+      return;
+    }
+
+    const rawHost = config.host.trim();
+    if (!rawHost) {
+      setStatus('error');
+      setMessage('Enter the ESP32 IP address first. Example: 192.168.1.50');
+      return;
+    }
+
+    const portText = config.port.trim();
+    const port = Number(portText);
+    if (!/^\d+$/.test(portText) || !Number.isInteger(port) || port < 1 || port > 65535) {
+      setStatus('error');
+      setMessage('Port must be a whole number from 1 to 65535.');
+      return;
+    }
+
+    let baseUrl: URL;
+    try {
+      // Accept either a bare hostname/IP or a full URL, but reject paths,
+      // credentials and protocol mismatches rather than silently targeting another URL.
+      const candidate = /^[a-z][a-z\d+.-]*:\/\//i.test(rawHost)
         ? new URL(rawHost)
-        : new URL(`${config.protocol}://${rawHost}:${port}`);
+        : new URL(`${config.protocol}://${rawHost.includes(':') && rawHost.startsWith('[') ? rawHost : rawHost}:${port}`);
       if (candidate.protocol !== `${config.protocol}:`) {
         throw new Error(`The address uses ${candidate.protocol.replace(':', '').toUpperCase()}, but the selected protocol is ${config.protocol.toUpperCase()}.`);
       }
@@ -49,7 +104,8 @@ export const DevicePage: React.FC = () => {
         throw new Error('Enter only an IP address or hostname, without a path, query, or login details.');
       }
       if (!candidate.hostname) throw new Error('Enter a valid IP address or hostname.');
-      if (hasScheme && !candidate.port) candidate.port = String(port);
+      // If a full URL includes an explicit port, respect it; otherwise use the port field.
+      if (!/^[a-z][a-z\d+.-]*:\/\//i.test(rawHost)) candidate.port = String(port);
       baseUrl = candidate;
     } catch (error) {
       setStatus('error');
