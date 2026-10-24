@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { StatusBanner } from '../components/common/StatusBanner';
-import { Cpu, Wifi, Usb, ShieldCheck, CheckCircle2, AlertCircle, RefreshCw, Copy, Unplug } from 'lucide-react';
+import { Cpu, Wifi, ShieldCheck, CheckCircle2, AlertCircle, RefreshCw, Copy, Unplug } from 'lucide-react';
 
 type Transport = 'wifi' | 'usb';
 type DeviceConfig = {
@@ -84,7 +84,7 @@ export const DevicePage: React.FC = () => {
 
     const portText = config.port.trim();
     const port = Number(portText);
-    if (!/^\\d+$/.test(portText) || !Number.isInteger(port) || port < 1 || port > 65535) {
+    if (!/^\d+$/.test(portText) || !Number.isInteger(port) || port < 1 || port > 65535) {
       setStatus('error');
       setMessage('Port must be a whole number from 1 to 65535.');
       return;
@@ -94,7 +94,7 @@ export const DevicePage: React.FC = () => {
     try {
       // Accept either a bare hostname/IP or a full URL, but reject paths,
       // credentials and protocol mismatches rather than silently targeting another URL.
-      const candidate = /^[a-z][a-z\\d+.-]*:\\/\\//i.test(rawHost)
+      const candidate = /^[a-z][a-z\d+.-]*:\/\//i.test(rawHost)
         ? new URL(rawHost)
         : new URL(`${config.protocol}://${rawHost.includes(':') && rawHost.startsWith('[') ? rawHost : rawHost}:${port}`);
       if (candidate.protocol !== `${config.protocol}:`) {
@@ -105,7 +105,7 @@ export const DevicePage: React.FC = () => {
       }
       if (!candidate.hostname) throw new Error('Enter a valid IP address or hostname.');
       // If a full URL includes an explicit port, respect it; otherwise use the port field.
-      if (!/^[a-z][a-z\\d+.-]*:\\/\\//i.test(rawHost)) candidate.port = String(port);
+      if (!/^[a-z][a-z\d+.-]*:\/\//i.test(rawHost)) candidate.port = String(port);
       baseUrl = candidate;
     } catch (error) {
       setStatus('error');
