@@ -1,6 +1,8 @@
 """Regression tests for LUNA's developer login token lifecycle and CORS methods."""
 
 import base64
+import hashlib
+import hmac
 import json
 import os
 import unittest
@@ -10,6 +12,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from main import (
     DEFAULT_DEV_CODE,
+    DEFAULT_DEV_TOKEN_SECRET,
     _developer_token,
     _is_valid_developer_token,
     app,
@@ -59,6 +62,14 @@ class DeveloperTokenTests(unittest.TestCase):
                 json.dumps({"role": "user", "exp": 2**31}).encode()
             ).rstrip(b"=").decode()
             self.assertFalse(_is_valid_developer_token(f"{payload}.not-a-valid-signature"))
+
+    def test_signed_non_object_payload_is_rejected_without_server_error(self):
+        with patch.dict(os.environ, {}, clear=True):
+            payload = base64.urlsafe_b64encode(json.dumps(["not", "an", "object"]).encode()).rstrip(b"=").decode()
+            signature = base64.urlsafe_b64encode(
+                hmac.new(DEFAULT_DEV_TOKEN_SECRET.encode(), payload.encode(), hashlib.sha256).digest()
+            ).rstrip(b"=").decode()
+            self.assertFalse(_is_valid_developer_token(f"{payload}.{signature}"))
 
     def test_cors_allows_delete_for_book_removal(self):
         cors_middleware = next(
