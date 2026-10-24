@@ -122,7 +122,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
     allow_credentials=False,
-    allow_methods=["GET", "HEAD", "POST", "PATCH", "OPTIONS"],
+    allow_methods=["GET", "HEAD", "POST", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["Accept", "Content-Type", "Authorization"],
 )
 
@@ -255,10 +255,15 @@ def _b64url(data: bytes) -> str:
     return base64.urlsafe_b64encode(data).rstrip(b"=").decode("ascii")
 
 
+DEFAULT_DEV_CODE = "123456789"
+# Local-only fallback for the developer gate. Never expose the API beyond loopback.
+DEFAULT_DEV_TOKEN_SECRET = "luna-local-developer-token-secret-change-before-network-use-2026"
+
+
 def _developer_token(code: str) -> str | None:
-    """Issue a short-lived signed token only when a local developer secret is configured."""
-    expected_code = os.environ.get("LUNA_DEV_CODE", "123456789")
-    signing_secret = os.environ.get("LUNA_DEV_TOKEN_SECRET", "luna-local-developer-token-secret-change-before-network-use-2026")
+    """Issue a one-hour signed token when the configured local developer code matches."""
+    expected_code = os.environ.get("LUNA_DEV_CODE", DEFAULT_DEV_CODE)
+    signing_secret = os.environ.get("LUNA_DEV_TOKEN_SECRET", DEFAULT_DEV_TOKEN_SECRET)
     if not expected_code or len(expected_code) < 8 or not signing_secret or len(signing_secret) < 32:
         return None
     if not hmac.compare_digest(code, expected_code):
@@ -266,6 +271,23 @@ def _developer_token(code: str) -> str | None:
     payload = _b64url(json.dumps({"role": "developer", "exp": int(time.time()) + 3600}, separators=(",", ":")).encode())
     signature = _b64url(hmac.new(signing_secret.encode(), payload.encode(), hashlib.sha256).digest())
     return f"{payload}.{signature}"
+
+
+def _is_valid_developer_token(token: str, now: int | None = None) -> bool:
+    """Validate token signature, developer role, and expiry using the same configured secret as login."""
+    signing_secret = os.environ.get("LUNA_DEV_TOKEN_SECRET", DEFAULT_DEV_TOKEN_SECRET)
+    if not signing_secret or len(signing_secret) < 32 or not token or len(token) > 2048:
+        return False
+    try:
+        payload_part, signature_part = token.split(".", 1)
+        expected_signature = _b64url(hmac.new(signing_secret.encode(), payload_part.encode(), hashlib.sha256).digest())
+        if not hmac.compare_digest(signature_part, expected_signature):
+            return False
+        payload = json.loads(base64.urlsafe_b64decode(payload_part + "=" * (-len(payload_part) % 4)))
+        current_time = int(time.time()) if now is None else now
+        return payload.get("role") == "developer" and int(payload.get("exp", 0)) > current_time
+    except (ValueError, TypeError, json.JSONDecodeError, binascii.Error):
+        return False
 
 
 @app.post("/api/dev/login")
@@ -285,21 +307,12 @@ def developer_login(payload: Dict[str, Any] = Body(...)) -> Dict[str, str]:
 @app.get("/api/dev/verify")
 def developer_verify(request: Request) -> Dict[str, bool]:
     """Validate the signed developer token and its one-hour expiry."""
-    signing_secret = os.environ.get("LUNA_DEV_TOKEN_SECRET", "")
     authorization = request.headers.get("authorization", "")
-    if not signing_secret or len(signing_secret) < 32 or not authorization.startswith("Bearer "):
+    if not authorization.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Developer login required.")
     token = authorization[7:].strip()
-    try:
-        payload_part, signature_part = token.split(".", 1)
-        expected_signature = _b64url(hmac.new(signing_secret.encode(), payload_part.encode(), hashlib.sha256).digest())
-        if not hmac.compare_digest(signature_part, expected_signature):
-            raise ValueError("signature")
-        payload = json.loads(base64.urlsafe_b64decode(payload_part + "=" * (-len(payload_part) % 4)))
-        if payload.get("role") != "developer" or int(payload.get("exp", 0)) < int(time.time()):
-            raise ValueError("expired")
-    except (ValueError, TypeError, json.JSONDecodeError, binascii.Error):
-        raise HTTPException(status_code=401, detail="Developer login expired. Please sign in again.")
+    if not _is_valid_developer_token(token):
+        raise HTTPException(status_code=401, detail="Developer login expired or invalid. Please sign in again.")
     return {"authenticated": True}
 
 
