@@ -5,6 +5,8 @@ import { fetchHealth, fetchBooks, adaptApiBook, API_BASE_URL } from '../services
 
 interface AppContextType {
   activePage: PageType;
+  appTheme: 'system' | 'light' | 'dark';
+  setAppTheme: (theme: 'system' | 'light' | 'dark') => void;
   setActivePage: (page: PageType) => void;
   books: Book[];
   apiBooks: ApiBook[];
@@ -45,6 +47,17 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [activePage, setActivePage] = useState<PageType>('dashboard');
+  const [appTheme, setAppTheme] = useState<'system' | 'light' | 'dark'>(() => {
+    const saved = window.localStorage.getItem('luna_app_theme');
+    return saved === 'light' || saved === 'dark' || saved === 'system' ? saved : 'system';
+  });
+  useEffect(() => {
+    window.localStorage.setItem('luna_app_theme', appTheme);
+    const root = document.documentElement;
+    if (appTheme === 'system') root.removeAttribute('data-theme');
+    else root.setAttribute('data-theme', appTheme);
+    root.style.colorScheme = appTheme === 'system' ? 'light dark' : appTheme;
+  }, [appTheme]);
   
   // Real API state
   const [books, setBooks] = useState<Book[]>([]);
@@ -384,6 +397,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       value={{
         activePage,
         setActivePage,
+        appTheme,
+        setAppTheme,
         books,
         apiBooks,
         isLoadingBooks,
