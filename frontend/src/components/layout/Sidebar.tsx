@@ -82,10 +82,24 @@ export const Sidebar: React.FC = () => {
       {/* Brand Header */}
       <div className="sidebar-header">
         <div className="sidebar-brand">
-          <div className="brand-icon-box">
+          <button
+            type="button"
+            className="brand-icon-box brand-profile-shortcut"
+            onClick={() => setActivePage('profiles')}
+            aria-label="Open my profile"
+            title="Open my profile"
+          >
             <Moon size={18} />
-          </div>
-          <span className="brand-title">LUNA</span>
+          </button>
+          <button
+            type="button"
+            className="brand-title brand-title-button"
+            onClick={() => setActivePage('dashboard')}
+            aria-label="Go to LUNA dashboard"
+            title="Go to Dashboard"
+          >
+            LUNA
+          </button>
         </div>
         <span className="brand-badge">Offline</span>
       </div>
