@@ -692,3 +692,76 @@
   .profiles-account-top p { color:#a1a1aa; }
   .profiles-footer { border-color:#343640; color:#a1a1aa; }
 }
+
+
+/* Branded profile shortcut and clearer account identity block. */
+.brand-profile-shortcut,
+.brand-title-button {
+  font: inherit;
+  cursor: pointer;
+}
+.brand-profile-shortcut {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+}
+.brand-profile-shortcut:hover,
+.brand-profile-shortcut:focus-visible {
+  outline: 2px solid var(--accent-primary, #7c83ff);
+  outline-offset: 3px;
+}
+.brand-title-button {
+  border: 0;
+  padding: 0;
+  color: inherit;
+  background: transparent;
+  font-weight: inherit;
+}
+.brand-title-button:focus-visible {
+  outline: 2px solid var(--accent-primary, #7c83ff);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+.profiles-account-identity {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  min-width: 0;
+}
+.profiles-account-avatar {
+  display: grid;
+  place-items: center;
+  flex: 0 0 62px;
+  width: 62px;
+  height: 62px;
+  border: 3px solid rgba(255,255,255,.9);
+  border-radius: 21px;
+  color: #fff;
+  background: linear-gradient(140deg, #293f80, #8c5ec8 55%, #ed9c9e);
+  box-shadow: 0 8px 22px rgba(61, 55, 123, .2);
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: .04em;
+}
+.profiles-account-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  color: #6f756e;
+  font-size: 10px;
+}
+.profiles-account-status > span {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #35a56b;
+  box-shadow: 0 0 0 3px rgba(53,165,107,.12);
+}
+@media (max-width: 460px) {
+  .profiles-account-identity { align-items: flex-start; }
+  .profiles-account-avatar { flex-basis: 50px; width: 50px; height: 50px; border-radius: 16px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .profile-card, .profile-cover::before { animation: none; transition: none; }
+}
