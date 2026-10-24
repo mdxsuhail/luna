@@ -62,12 +62,15 @@ class DeveloperTokenTests(unittest.TestCase):
             replacement = ("A" if signature[0] != "A" else "B") + signature[1:]
             self.assertFalse(_is_valid_developer_token(f"{payload}.{replacement}"))
 
-    def test_token_with_invalid_payload_is_rejected(self):
+    def test_token_with_non_developer_role_is_rejected(self):
         with patch.dict(os.environ, {}, clear=True):
             payload = base64.urlsafe_b64encode(
                 json.dumps({"role": "user", "exp": 2**31}).encode()
             ).rstrip(b"=").decode()
-            self.assertFalse(_is_valid_developer_token(f"{payload}.not-a-valid-signature"))
+            signature = base64.urlsafe_b64encode(
+                hmac.new(DEFAULT_DEV_TOKEN_SECRET.encode(), payload.encode(), hashlib.sha256).digest()
+            ).rstrip(b"=").decode()
+            self.assertFalse(_is_valid_developer_token(f"{payload}.{signature}"))
 
     def test_signed_non_object_payload_is_rejected_without_server_error(self):
         with patch.dict(os.environ, {}, clear=True):
