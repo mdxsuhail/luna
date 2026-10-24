@@ -85,7 +85,7 @@ class DeveloperTokenTests(unittest.TestCase):
             middleware for middleware in app.user_middleware
             if middleware.cls is CORSMiddleware
         )
-        self.assertIn("DELETE", cors_middleware.options["allow_methods"])
+        self.assertIn("DELETE", cors_middleware.kwargs["allow_methods"])
 
 
 if __name__ == "__main__":
