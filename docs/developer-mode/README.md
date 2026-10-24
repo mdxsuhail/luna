@@ -1,6 +1,6 @@
 # LUNA Developer Mode
 
-Developer Mode is a local development area for tuning frontend settings and running safe maintenance actions.
+Developer Mode is reserved for technical inspection and troubleshooting. Ordinary app preferences (appearance, PDF reader options, text-to-speech settings, and general project information) belong in the normal user interface.
 
 ## Access code
 
@@ -12,16 +12,16 @@ The code is checked by the FastAPI backend at `POST /api/dev/login`; it is not e
 
 To override the default on your own machine, set `LUNA_DEV_CODE` and `LUNA_DEV_TOKEN_SECRET` in `backend/.env`. Keep that file private and never commit it.
 
-## Current controls
+## Developer-only tools
 
-- Application theme (system, light, dark)
-- PDF reader theme and font size
-- Text-to-speech playback speed
-- Refresh library data from the backend
-- Open Settings, Library, and About pages
-- Reset appearance/reader preferences without deleting PDFs or SQLite records
-- Lock Developer Mode for the current browser session
+- Run diagnostic checks for browser connectivity, speech API support, local storage, backend health, and library request state.
+- Inspect backend endpoint reachability, library record counts, and the latest API error.
+- Retry backend/library loading while troubleshooting.
+- Export or copy a JSON diagnostics report for bug investigation.
+- Lock Developer Mode when finished.
+
+Diagnostic reports contain technical browser/app state and record counts, not PDF contents. Review a report before sharing it because it includes browser and runtime details.
 
 ## Deferred
 
-ESP32/device integration is intentionally deferred. The Developer Mode roadmap lists it as a future module; this dashboard does not attempt to connect to hardware.
+ESP32/device integration is intentionally deferred. It is listed as a future roadmap item only; this dashboard does not attempt to connect to hardware.
