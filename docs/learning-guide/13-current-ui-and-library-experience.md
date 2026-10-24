@@ -9,7 +9,7 @@ File: `frontend/src/App.tsx`
 - Wraps the application in `AppProvider`, which exposes shared state.
 - Renders the sidebar, header, active page, and persistent player.
 - Uses the `activePage` value from `useApp()` to select a page component. This is an in-app view switch, not a full URL-based router.
-- Handles the developer-only gate for About, Settings, and Device Integration. See [Module 14](14-developer-access-gate.md).
+- Handles the developer-only gate for the Developer Mode page. About and Settings are ordinary user-facing pages. See [Module 14](14-developer-access-gate.md).
 
 ## Shared state and data models
 
@@ -32,9 +32,9 @@ A displayed field is not necessarily database-backed. For example, category, aut
 | `pages/AudiobooksPage.tsx` | Speech narration controls | Uses browser speech synthesis and extracted page text; not a generated MP3 library. |
 | `components/layout/PersistentPlayer.tsx` | Playback controls available across views | Shares state with `AppContext`; it is not an independent audio engine. |
 | `pages/PlaylistsPage.tsx` | Playlist-themed interface and tape selection | Playlist data is currently client-side/mock data; no playlist CRUD API exists. |
-| `pages/AboutPage.tsx` | About/mission presentation | Developer-gated in the current app shell. |
-| `pages/SettingsPage.tsx` | Local UI settings and diagnostics | Developer-gated; only document settings that have real state/effects as functional. |
-| `pages/DevicePage.tsx` | Companion-device concept/status screen | Does not make an ESP32 device a requirement and should not be described as a completed hardware integration. |
+| `pages/AboutPage.tsx` | About/mission presentation | Ordinary user-facing page; no developer code required. |
+| `pages/SettingsPage.tsx` | Local UI settings | Ordinary user-facing page. Distinguish settings that persist in browser storage from temporary React state. |
+| `pages/DevicePage.tsx` | Legacy companion-device prototype | Not wired into current navigation; hardware integration is deferred and is not required to run LUNA. |
 | `components/common/FolderStack.tsx`, `TapeStack.tsx` | Interactive editorial-inspired visual components | Visual/state interactions; not real filesystem folders or audio-cassette media. |
 | `components/common/StatusBanner.tsx`, `Modal.tsx` | Reusable status and modal UI | Presentation primitives. |
 

@@ -64,7 +64,7 @@ export const Sidebar: React.FC = () => {
 
   const secondaryNav: NavItemConfig[] = [
     {
-      id: 'device',
+      id: 'developer',
       label: 'Developer Mode',
       icon: <Code2 size={17} />,
       badge: 'Tools',

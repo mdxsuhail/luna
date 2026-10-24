@@ -24,7 +24,7 @@ const AppContent: React.FC = () => {
   const [developerError, setDeveloperError] = useState('');
 
   // Developer Mode is gated; hardware integration remains a future feature.
-  const developerPages = ['device'];
+  const developerPages = ['developer'];
   const isDeveloperPage = developerPages.includes(activePage);
   useEffect(() => {
     const token = sessionStorage.getItem('luna_dev_token');
@@ -150,7 +150,7 @@ const AppContent: React.FC = () => {
         return <AboutPage />;
       case 'settings':
         return <SettingsPage />;
-      case 'device':
+      case 'developer':
         return renderDeveloperPage();
       default:
         return <DashboardPage />;

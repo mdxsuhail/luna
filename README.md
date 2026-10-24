@@ -74,6 +74,7 @@ Modern eBook and audiobook applications frequently impose proprietary DRM format
 | **Reader bookmarks** | Implemented in browser storage | Bookmark/unbookmark the current page for each book. Bookmarks are stored in this browser's `localStorage` and survive refreshes in the same browser profile; they are not synchronized between devices or users and may be cleared with browser data. |
 | **Browser-based PDF narration** | Basic implementation | The frontend requests selectable page text from the local API and uses the browser's Speech Synthesis API. No MP3/WAV file is generated or cached; voice availability depends on the browser/OS. Accurate seeking and total duration are unavailable. |
 | **Dashboard** | Partial | Library-backed counts can be shown, while activity history and other reading statistics may still be demonstration data. |
+| **Developer Mode** | Local diagnostics | Password-gated developer diagnostics, backend/library checks, and JSON report export. See [Developer Mode documentation](docs/developer-mode/README.md); the shared default code is local-development only. |
 | **Windows Launcher** | Available; verify locally | `start-luna.bat` starts separate backend/frontend windows and waits for ports. It has not been verified on every Windows/PowerShell setup. |
 
 ### In-Progress & Planned Features
@@ -452,7 +453,7 @@ luna/
 
 ## Configuration
 
-LUNA does not require external environment variables or `.env` files. All settings are designed to work securely out of the box for local development.
+LUNA can run locally without a `.env` file. Developer Mode has a convenience default code for local development; because the fallback is visible in this public repository, it is not suitable for a network-facing deployment. Optional local overrides are documented in [Developer Mode](docs/developer-mode/README.md).
 
 ### Verified Internal Defaults
 
@@ -487,7 +488,7 @@ npm run preview
 ```
 
 ### Automated Checks
-GitHub Actions runs backend path-safety unit tests and the frontend TypeScript/Vite production build on pushes and pull requests. Check the Actions tab for the latest result. These checks do not replace a manual end-to-end PDF import test.
+GitHub Actions runs backend unit tests, the frontend TypeScript/Vite production build, responsive browser checks, and dependency-security audits on pushes and pull requests. Check the Actions tab for the latest result. Passing automated checks does not replace a manual end-to-end PDF import/delete/open test.
 
 ### Backend & API Verification
 You can verify backend routes interactively via Swagger UI:
@@ -542,11 +543,12 @@ You can verify backend routes interactively via Swagger UI:
 
 ## Security & Limitations
 
-- **Local-only boundary**: LUNA is a single-user desktop prototype with no login/authentication. Keep the API bound to `127.0.0.1`; do not expose it to a LAN or the internet.
+- **Local-only boundary**: LUNA is a local desktop prototype. Although account and developer-gate endpoints exist, they are not a substitute for a security-reviewed, network-facing authentication system. Keep the API bound to `127.0.0.1`; do not expose it to a LAN or the internet.
 - **Host and cross-origin checks**: The backend rejects non-loopback Host values and rejects cross-origin state-changing requests when a browser supplies an untrusted Origin. CORS is restricted to the local Vite origins, required methods, and headers. These checks reduce browser-based abuse but do not replace authentication for a network-facing deployment.
 - **Path traversal guard**: PDF streaming and text extraction resolve registered filenames and reject paths or symlinks that escape `local-data/books/`.
 - **Resource limits**: PDF uploads are limited to 50 MB, documents over 20,000 pages are rejected, and one page-text response is capped at 1,000,000 characters. These are guardrails, not a guarantee against every malicious PDF parser denial-of-service.
 - **Reduced diagnostic disclosure**: The health endpoint does not return absolute local filesystem paths.
+- **Developer Mode**: the default developer code and fallback signing secret are public local-development defaults. Use private overrides in an untracked `backend/.env`; never expose the backend beyond loopback while using defaults. See `docs/developer-mode/README.md`.
 - **Dependency checks**: CI runs Python dependency auditing and an npm audit threshold for high-severity production dependencies.
 - **Encrypted PDF handling**: Password-protected PDFs that cannot be unlocked are rejected.
 - **Local data**: Metadata and imported books live in `local-data/`. Back up this folder before making destructive changes.

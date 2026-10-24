@@ -23,8 +23,8 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAddBook }) => {
         return 'Playlists & Audio Queues';
       case 'settings':
         return 'Preferences & Storage';
-      case 'device':
-        return 'Hardware Companion (Optional)';
+      case 'developer':
+        return 'Developer Mode';
       default:
         return 'LUNA';
     }
