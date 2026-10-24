@@ -25,6 +25,7 @@ To build a thorough understanding of LUNA, follow these modules in order:
 | **12** | [Browser Audiobook & Playback State](12-browser-audiobook-and-playback-state.md) | Speech synthesis, timer, refs and playback limits | AppContext, AudiobooksPage, API client |
 | **13** | [Current UI & Library Experience](13-current-ui-and-library-experience.md) | Pages, reusable components and actual persistence | App shell, library, dashboard, reader, playlists |
 | **14** | [Developer Access Gate](14-developer-access-gate.md) | Local code, signed session token, gated pages | App.tsx, backend login/verify routes |
+| **15** | [Account, Navigation & Appearance](15-account-navigation-and-themes.md) | Sidebar order, System/Light/Dark preference, localStorage, account shortcut, password/session flow | Sidebar.tsx, AppContext.tsx, SettingsPage.tsx, ProfilesPage.tsx, auth.py, index.css |
 
 ---
 
@@ -103,7 +104,9 @@ This section tracks the review status of every source file in the repository to 
 | Audiobook/narration | Frontend uses browser Speech Synthesis for extracted text. | Do not claim LUNA generates, caches, or exports MP3/WAV files. |
 | Playback progress | Frontend keeps playback-related state in React and uses an elapsed-time counter. | Do not claim exact audio duration, true seeking, or SQLite persistence. |
 | Playlists | Current playlist state is client-side/mock data. | Do not claim playlist changes survive reload or sync to SQLite. |
-| Settings/About/Device pages | Rendered behind the local developer-code gate. | Do not claim this is a full user-account system or that it protects all backend routes. |
+| Settings/About pages | Accessible without the developer code; optional Device Integration remains gated. | Do not claim that password reset/email verification exists or that this protects all backend routes. |
+| Account login | SQLite-backed user records; scrypt password hashes and hashed session tokens. | Test signup/sign-in locally; do not commit real credentials or claim cloud synchronization. |
+| Appearance preference | System/Light/Dark choice stored in browser `localStorage`. | This is browser-local, not a synchronized account preference; audit hardcoded colours across pages. |
 | Developer login | HMAC-signed token with an expiry, using secrets from local backend environment. | Do not commit real `backend/.env` values or expose the local backend publicly. |
 | Hardware companion | Optional concept/UI only. | ESP32 hardware is not required and a completed hardware connection is not implemented by these UI components. |
 
