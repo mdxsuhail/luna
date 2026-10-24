@@ -10,7 +10,7 @@ type DeviceConfig = {
   host: string;
   port: string;
   deviceId: string;
-  protocol: string;
+  protocol: 'http' | 'https';
 };
 type DeviceInfo = {
   device_id?: string;
@@ -35,7 +35,20 @@ export const DevicePage: React.FC = () => {
   const [config, setConfig] = useState<DeviceConfig>(() => {
     try {
       const saved = window.localStorage.getItem(STORAGE_KEY);
-      return saved ? { ...DEFAULT_CONFIG, ...JSON.parse(saved) } : DEFAULT_CONFIG;
+      if (!saved) return DEFAULT_CONFIG;
+      const parsed: unknown = JSON.parse(saved);
+      if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) return DEFAULT_CONFIG;
+      const candidate = parsed as Partial<DeviceConfig>;
+      return {
+        ...DEFAULT_CONFIG,
+        name: typeof candidate.name === 'string' ? candidate.name : DEFAULT_CONFIG.name,
+        board: typeof candidate.board === 'string' ? candidate.board : DEFAULT_CONFIG.board,
+        transport: candidate.transport === 'usb' ? 'usb' : 'wifi',
+        host: typeof candidate.host === 'string' ? candidate.host : '',
+        port: typeof candidate.port === 'string' ? candidate.port : DEFAULT_CONFIG.port,
+        deviceId: typeof candidate.deviceId === 'string' ? candidate.deviceId : '',
+        protocol: candidate.protocol === 'https' ? 'https' : 'http',
+      };
     } catch {
       return DEFAULT_CONFIG;
     }
@@ -61,31 +74,73 @@ export const DevicePage: React.FC = () => {
       setMessage('USB serial is not connected by this page yet. Use Wi-Fi for this first integration version.');
       return;
     }
-    let host = config.host.trim().replace('http://', '').replace('https://', '');
-    if (host.endsWith('/')) host = host.slice(0, -1);
-    if (!host) {
+
+    const rawHost = config.host.trim();
+    if (!rawHost) {
       setStatus('error');
       setMessage('Enter the ESP32 IP address first. Example: 192.168.1.50');
       return;
     }
-    const port = config.port.trim() || '80';
-    const baseUrl = `${config.protocol}://${host.includes(':') ? host : `${host}:${port}`}`;
+
+    const portText = config.port.trim();
+    const port = Number(portText);
+    if (!/^\\d+$/.test(portText) || !Number.isInteger(port) || port < 1 || port > 65535) {
+      setStatus('error');
+      setMessage('Port must be a whole number from 1 to 65535.');
+      return;
+    }
+
+    let baseUrl: URL;
+    try {
+      // Accept either a bare hostname/IP or a full URL, but reject paths,
+      // credentials and protocol mismatches rather than silently targeting another URL.
+      const candidate = /^[a-z][a-z\\d+.-]*:\\/\\//i.test(rawHost)
+        ? new URL(rawHost)
+        : new URL(`${config.protocol}://${rawHost.includes(':') && rawHost.startsWith('[') ? rawHost : rawHost}:${port}`);
+      if (candidate.protocol !== `${config.protocol}:`) {
+        throw new Error(`The address uses ${candidate.protocol.replace(':', '').toUpperCase()}, but the selected protocol is ${config.protocol.toUpperCase()}.`);
+      }
+      if (candidate.username || candidate.password || candidate.pathname !== '/' || candidate.search || candidate.hash) {
+        throw new Error('Enter only an IP address or hostname, without a path, query, or login details.');
+      }
+      if (!candidate.hostname) throw new Error('Enter a valid IP address or hostname.');
+      // If a full URL includes an explicit port, respect it; otherwise use the port field.
+      if (!/^[a-z][a-z\\d+.-]*:\\/\\//i.test(rawHost)) candidate.port = String(port);
+      baseUrl = candidate;
+    } catch (error) {
+      setStatus('error');
+      setMessage(error instanceof Error ? error.message : 'Enter a valid IP address or hostname.');
+      return;
+    }
+
     setStatus('checking');
     setMessage('Trying to contact the ESP32…');
     setDeviceInfo(null);
     const controller = new AbortController();
     const timeout = window.setTimeout(() => controller.abort(), 5000);
     try {
-      const response = await fetch(`${baseUrl}/api/device/info`, {
+      const response = await fetch(new URL('/api/device/info', baseUrl).toString(), {
         method: 'GET',
         signal: controller.signal,
         headers: { Accept: 'application/json' },
       });
       if (!response.ok) throw new Error(`ESP32 returned HTTP ${response.status}. Check that its firmware provides GET /api/device/info.`);
-      const info = await response.json() as DeviceInfo;
-      if (typeof info !== 'object' || info === null) throw new Error('The ESP32 returned an invalid device-info response.');
-      if (config.deviceId.trim() && info.device_id && info.device_id !== config.deviceId.trim()) {
-        throw new Error(`Device ID mismatch. Expected ${config.deviceId.trim()}, received ${info.device_id}.`);
+      const payload: unknown = await response.json();
+      if (typeof payload !== 'object' || payload === null || Array.isArray(payload)) {
+        throw new Error('The ESP32 returned invalid JSON. Expected a device-info object.');
+      }
+      const info = payload as DeviceInfo;
+      if (info.device_id !== undefined && typeof info.device_id !== 'string') {
+        throw new Error('The ESP32 returned an invalid device_id field.');
+      }
+      if (info.capabilities !== undefined && (!Array.isArray(info.capabilities) || !info.capabilities.every(item => typeof item === 'string'))) {
+        throw new Error('The ESP32 returned an invalid capabilities field. It must be an array of strings.');
+      }
+      const expectedId = config.deviceId.trim();
+      if (expectedId && info.device_id !== expectedId) {
+        throw new Error(info.device_id
+          ? `Device ID mismatch. Expected ${expectedId}, received ${info.device_id}.`
+          : `This device did not report an ID. Expected ${expectedId}; update its firmware response or clear the expected device ID.`);
       }
       setDeviceInfo(info);
       setStatus('connected');
@@ -148,7 +203,7 @@ export const DevicePage: React.FC = () => {
           </select>
           {config.transport === 'wifi' ? <>
             <label htmlFor="luna-device-protocol" style={labelStyle}>Protocol</label>
-            <select id="luna-device-protocol" value={config.protocol} onChange={e => update('protocol', e.target.value)} style={fieldStyle}><option value="http">HTTP (local network)</option><option value="https">HTTPS</option></select>
+            <select id="luna-device-protocol" value={config.protocol} onChange={e => update('protocol', e.target.value as 'http' | 'https')} style={fieldStyle}><option value="http">HTTP (local network)</option><option value="https">HTTPS</option></select>
             <label htmlFor="luna-device-host" style={labelStyle}>ESP32 IP address / hostname</label>
             <input id="luna-device-host" value={config.host} onChange={e => update('host', e.target.value)} placeholder="e.g. 192.168.1.50" autoComplete="off" style={fieldStyle} />
             <label htmlFor="luna-device-port" style={labelStyle}>Port</label>
@@ -184,7 +239,7 @@ export const DevicePage: React.FC = () => {
             <div style={{ borderRadius: 8, background: 'var(--bg-input)', border: '1px solid var(--border-subtle)', padding: 12, fontSize: 12, color: 'var(--text-main)', overflowX: 'auto' }}>
               <strong>GET /api/device/info</strong>
               <pre style={{ whiteSpace: 'pre-wrap', margin: '8px 0 0', fontFamily: 'monospace' }}>{JSON.stringify({ device_id: 'luna-reader-01', name: 'LUNA Reader', board: 'ESP32-WROOM-32 DevKit', firmware_version: '0.1.0', capabilities: ['display_text', 'next_page', 'previous_page'] }, null, 2)}</pre>
-              <button type="button" className="btn btn-sm btn-ghost" onClick={() => { void navigator.clipboard?.writeText(JSON.stringify({ device_id: 'luna-reader-01', name: 'LUNA Reader', board: config.board, firmware_version: '0.1.0', capabilities: ['display_text', 'next_page', 'previous_page'] }, null, 2)); }} style={{ marginTop: 10 }}><Copy size={13} /> Copy example JSON</button>
+              <button type="button" className="btn btn-sm btn-ghost" onClick={() => { const json = JSON.stringify({ device_id: 'luna-reader-01', name: 'LUNA Reader', board: config.board, firmware_version: '0.1.0', capabilities: ['display_text', 'next_page', 'previous_page'] }, null, 2); if (navigator.clipboard?.writeText) { void navigator.clipboard.writeText(json).catch(() => setMessage('Clipboard access failed. Select and copy the example JSON manually.')); } else { setMessage('Clipboard is unavailable in this browser. Select and copy the example JSON manually.'); } }} style={{ marginTop: 10 }}><Copy size={13} /> Copy example JSON</button>
             </div>
             <button type="button" className="btn btn-ghost" onClick={() => setShowProtocol(v => !v)} style={{ marginTop: 12 }}>{showProtocol ? 'Hide' : 'Show'} next implementation steps</button>
             {showProtocol && <ol style={{ color: 'var(--text-secondary)', fontSize: 12, lineHeight: 1.8, paddingLeft: 20 }}>
