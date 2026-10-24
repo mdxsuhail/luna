@@ -14,7 +14,7 @@ interface AppContextType {
   apiError: string | null;
   isBackendOnline: boolean;
   backendHealth: ApiHealthResponse | null;
-  refreshBooks: () => Promise<void>;
+  refreshBooks: () => Promise<boolean>;
   activeBook: Book | null;
   setActiveBook: (book: Book | null) => void;
   activeChapter: Chapter | null;
@@ -301,39 +301,38 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   /**
    * Fetches health status and books from the FastAPI backend.
    */
-  const refreshBooks = useCallback(async () => {
+  const refreshBooks = useCallback(async (): Promise<boolean> => {
     setIsLoadingBooks(true);
     setApiError(null);
 
     try {
-      // 1. Check backend health
       const health = await fetchHealth();
       setBackendHealth(health);
       setIsBackendOnline(true);
 
-      // 2. Fetch books from SQLite
       const rawBooks = await fetchBooks();
       setApiBooks(rawBooks);
 
       const adapted = rawBooks.map(adaptApiBook);
       setBooks(adapted);
 
-      // If active book is not set or was removed, set to first available or null
       setActiveBook((current) => {
         if (!current && adapted.length > 0) return adapted[0];
-        if (current && !adapted.some((b) => b.id === current.id)) {
+        if (current && !adapted.some((book) => book.id === current.id)) {
           return adapted.length > 0 ? adapted[0] : null;
         }
         return current;
       });
-    } catch (err: any) {
+      return true;
+    } catch (err: unknown) {
       setIsBackendOnline(false);
       setBackendHealth(null);
       setBooks([]);
       setApiBooks([]);
       setActiveBook(null);
-      const message = err.message || 'Unable to connect to LUNA backend.';
+      const message = err instanceof Error ? err.message : 'Unable to connect to LUNA backend.';
       setApiError(message);
+      return false;
     } finally {
       setIsLoadingBooks(false);
     }
