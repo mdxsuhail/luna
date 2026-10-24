@@ -1,56 +1,66 @@
-# Module 14: Developer-Only Access Gate
+# Module 14: Developer Mode Access Gate
 
-The current application shell asks for a locally configured developer code before showing the About, Settings, and Device Integration pages. The main dashboard, library, PDF reader, and normal reading workflow remain available without unlocking this area.
+Developer Mode is a gated, developer-only diagnostics page. The About page, Settings page, dashboard, library, and reading workflow remain available without unlocking it. ESP32 integration is deferred and the legacy `DevicePage.tsx` is not wired into current navigation.
 
 ## Files involved
 
-- `frontend/src/App.tsx`: gate UI, login request, browser session token storage, and verification.
-- `backend/main.py`: local environment loading, signed-token creation, login and verification endpoints.
-- `backend/.env.example`: placeholder configuration instructions.
-- `.gitignore`: excludes real environment files; inspect it before adding any secret file.
+- `frontend/src/App.tsx`: access form, login request, browser session token storage, token verification, and lock action.
+- `frontend/src/pages/DeveloperPage.tsx`: browser/backend diagnostics, library refresh, and JSON report export.
+- `backend/main.py`: local environment loading, signed-token creation, login/verification endpoints, and local API restrictions.
+- `backend/tests/test_developer_auth.py`: regression tests for developer token handling and CORS configuration.
+- `docs/developer-mode/README.md`: practical developer tools and local-only security instructions.
 
-## Local configuration
+## Local configuration and access code
 
-1. From the repository, copy `backend/.env.example` to `backend/.env`.
-2. Replace `LUNA_DEV_CODE` with a private code of at least 8 characters.
-3. Replace `LUNA_DEV_TOKEN_SECRET` with a random secret of at least 32 characters.
-4. Do not commit `backend/.env`, paste these values into an issue, or place them in frontend code.
-5. Restart the backend after changing the file because values are loaded when the Python module starts.
+The requested local default code is `123456789`. The backend also has a checked-in fallback signing secret so local Developer Mode can work without a `.env` file. These defaults are visible in this public repository and are **not production secrets**.
 
-The simple local environment loader reads key/value lines and does not override variables already set by the operating system. It is not a full implementation of every feature supported by the third-party `python-dotenv` format.
+For a private local override, create `backend/.env` with:
 
-## Login flow
+```dotenv
+LUNA_DEV_CODE=your-private-code
+LUNA_DEV_TOKEN_SECRET=replace-with-a-random-secret-at-least-32-characters
+```
 
-1. The user enters a code in the frontend gate.
-2. `POST /api/dev/login` receives JSON such as `{"code":"..." }`.
-3. The backend checks that the configured code and signing secret meet minimum lengths.
-4. It compares the submitted code using `hmac.compare_digest`.
-5. If valid, the backend signs a compact payload with HMAC-SHA256. The payload contains the developer role and an expiry approximately one hour in the future.
-6. The frontend stores the token in `sessionStorage` as `luna_dev_token`.
-7. When restoring or entering a gated page, the frontend calls `GET /api/dev/verify` with an `Authorization: Bearer <token>` header.
-8. Locking the area removes the session token and returns to the dashboard if the user was on a gated page.
+Restart the backend after changing the file. The local loader does not override environment variables already set by the operating system. Keep real environment files untracked and never place secrets in frontend code.
 
-## Why the token is signed
+## Login and verification flow
 
-A client can edit browser storage, so the backend must not trust a plain value such as `developerUnlocked=true`. The signature lets the backend detect token changes without keeping a database session table. The expiry limits the useful lifetime of a copied token.
+1. The user enters the developer code in the frontend access form.
+2. The frontend sends the code to `POST /api/dev/login` as JSON.
+3. The backend checks the submitted code with `hmac.compare_digest`.
+4. If it matches, the backend signs a payload containing the developer role and an expiry one hour in the future using HMAC-SHA256.
+5. The frontend stores the token in `sessionStorage` as `luna_dev_token`.
+6. On session restore and when opening Developer Mode, the frontend calls `GET /api/dev/verify` with an `Authorization: Bearer` header.
+7. The backend verifies the signature, confirms that the payload is an object with the developer role, and rejects expired, malformed, oversized, or tampered tokens.
+8. Locking Developer Mode removes the tab's token and returns to the dashboard when the user is on the developer page.
+
+Login and verification must use the same signing-secret configuration. A mismatch would allow the backend to issue a token and then reject that token during verification; the regression tests cover this case using both defaults and environment overrides.
 
 ## Security boundary and limitations
 
-- This is a lightweight developer-area gate for a local single-user app, not a full account system.
-- The secret is kept in backend environment configuration; never embed it in the React bundle.
-- Session tokens are stored in browser `sessionStorage`, which is scoped to the browser tab/session and is still accessible to same-origin JavaScript.
-- The code currently does not implement login rate limiting, multi-user identity, password reset, audit logs, or server-side session revocation.
-- The gate only controls which pages the frontend renders. It does not protect the repository source code or automatically authenticate every backend endpoint.
-- Keep Uvicorn bound to `127.0.0.1`; do not expose this prototype on a LAN or the public internet.
-- Security tests and CI are regression checks, not a formal penetration test.
+- This is a lightweight page-access gate for a local single-user prototype, not a full authentication system.
+- The default code and fallback signing secret are public local-development defaults. Keep FastAPI bound to `127.0.0.1:8000`; do not expose it to a LAN or the internet.
+- Use a private `LUNA_DEV_CODE` and random `LUNA_DEV_TOKEN_SECRET` in an untracked `backend/.env` for local overrides.
+- Tokens live in `sessionStorage`, which is accessible to same-origin JavaScript.
+- There is no login rate limiting, multi-user developer identity, audit log, or server-side developer-session revocation.
+- The gate controls frontend page access; it does not authenticate every backend route.
+- Host/origin restrictions and CORS reduce some browser-based abuse but are not a substitute for security review before network deployment.
+- Automated tests are regression checks, not a formal penetration test.
 
-## API responses
+## API behavior
 
-| Endpoint | Expected purpose | Typical result |
+| Endpoint | Purpose | Expected behavior |
 |---|---|---|
-| `POST /api/dev/login` | Check the submitted developer code | Returns a token when configured and correct; 400 for missing code, 401 for wrong code, 503 if secrets are not configured. |
-| `GET /api/dev/verify` | Verify bearer token signature and expiry | Returns `{"authenticated": true}` for a valid token; otherwise 401. |
+| `POST /api/dev/login` | Verify the submitted code | Returns a signed token for a correct code; 400 for a missing code; 401 for an incorrect code. |
+| `GET /api/dev/verify` | Verify a bearer token | Returns `{"authenticated": true}` for a valid token; otherwise returns 401. |
 
-## Current implementation review note
+## Run regression tests
 
-Malformed token strings must always be treated as unauthenticated input. The verification function should catch decoding errors from the Base64 library as well as JSON/type/value errors and return HTTP 401, not an unhandled HTTP 500. See the active fix review in [PR #48](https://github.com/mdxsuhail/luna/pull/48); that fix is not part of the main branch until merged.
+From the repository root:
+
+```powershell
+python -m pip install -r backend/requirements.txt
+python -m unittest discover -s backend/tests -v
+```
+
+The developer-auth tests cover default and overridden codes/secrets, incorrect codes, token expiry, signature tampering, non-developer roles, non-object payloads, and the CORS method used by PDF deletion.
