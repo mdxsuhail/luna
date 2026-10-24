@@ -28,7 +28,15 @@ export const ReaderPage: React.FC = () => {
   } = useApp();
 
   const [isTocOpen, setIsTocOpen] = useState(true);
-  const [isBookmarked, setIsBookmarked] = useState(false);
+  // Persist bookmarks per book and page in this browser.
+  const [bookmarks, setBookmarks] = useState<Record<string, number[]>>(() => {
+    try {
+      const saved = window.localStorage.getItem('luna_reader_bookmarks');
+      const parsed: unknown = saved ? JSON.parse(saved) : {};
+      return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed as Record<string, number[]> : {};
+    } catch { return {}; }
+  });
+  const isBookmarked = Boolean(activeBook && (bookmarks[String(activeBook.id)] || []).includes(readerPage));
   const [isFullView, setIsFullView] = useState(false);
 
   const themes: { id: ReaderTheme; label: string; bg: string; text: string }[] = [
@@ -102,8 +110,18 @@ export const ReaderPage: React.FC = () => {
   };
 
   const toggleBookmark = () => {
-    setIsBookmarked(!isBookmarked);
-    showNotification(!isBookmarked ? `Bookmarked page ${readerPage}` : `Removed bookmark for page ${readerPage}`);
+    if (!activeBook) return;
+    const bookKey = String(activeBook.id);
+    const currentPages = bookmarks[bookKey] || [];
+    const nextPages = isBookmarked ? currentPages.filter((page) => page !== readerPage) : [...currentPages, readerPage].sort((a, b) => a - b);
+    const nextBookmarks = { ...bookmarks, [bookKey]: nextPages };
+    setBookmarks(nextBookmarks);
+    try {
+      window.localStorage.setItem('luna_reader_bookmarks', JSON.stringify(nextBookmarks));
+      showNotification(isBookmarked ? `Removed bookmark for page ${readerPage}` : `Bookmarked page ${readerPage} in ${activeBook.title}`);
+    } catch {
+      showNotification('Bookmark changed for this session, but browser storage is unavailable.');
+    }
   };
 
   return (
