@@ -2,6 +2,10 @@ import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import {
   HardDrive,
+  UserRound,
+  Sun,
+  Moon,
+  Monitor,
   Sliders,
   Shield,
   CheckCircle2,
@@ -11,6 +15,9 @@ import {
 
 export const SettingsPage: React.FC = () => {
   const {
+    appTheme,
+    setAppTheme,
+    setActivePage,
     readerTheme,
     setReaderTheme,
     readerFontSize,
@@ -25,7 +32,7 @@ export const SettingsPage: React.FC = () => {
     refreshBooks,
   } = useApp();
 
-  const [activeTab, setActiveTab] = useState<'storage' | 'reader' | 'audio' | 'privacy'>('storage');
+  const [activeTab, setActiveTab] = useState<'account' | 'appearance' | 'storage' | 'reader' | 'audio' | 'privacy'>('appearance');
 
   return (
     <div className="page-container">
@@ -48,6 +55,8 @@ export const SettingsPage: React.FC = () => {
         }}
       >
         {[
+          { id: 'account', label: 'Account', icon: <UserRound size={15} /> },
+          { id: 'appearance', label: 'Appearance', icon: <Sun size={15} /> },
           { id: 'storage', label: 'Storage & Directories', icon: <HardDrive size={15} /> },
           { id: 'reader', label: 'Reader Preferences', icon: <Sliders size={15} /> },
           { id: 'audio', label: 'Audio & Speech', icon: <RefreshCw size={15} /> },
@@ -70,6 +79,9 @@ export const SettingsPage: React.FC = () => {
           </button>
         ))}
       </div>
+
+      {activeTab === 'account' && <section style={{ background: 'var(--bg-card)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-lg)', padding: 24, maxWidth: 760 }}><h2 style={{ color: 'var(--text-main)', fontSize: 16 }}>Your LUNA account</h2><p style={{ color: 'var(--text-secondary)', fontSize: 13, marginTop: 6, lineHeight: 1.6 }}>Edit your display name, role, interests, and bio on the profile page. Your account is stored by the local backend.</p><button type="button" className="btn btn-primary" style={{ marginTop: 16 }} onClick={() => setActivePage('profiles')}>Open profile & account <UserRound size={15} /></button><p style={{ color: 'var(--text-muted)', fontSize: 12, marginTop: 12 }}>Password reset and email verification are not available yet.</p></section>}
+      {activeTab === 'appearance' && <section style={{ background: 'var(--bg-card)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-lg)', padding: 24, maxWidth: 760 }}><h2 style={{ color: 'var(--text-main)', fontSize: 16 }}>App appearance</h2><p style={{ color: 'var(--text-secondary)', fontSize: 13, marginTop: 6, marginBottom: 18 }}>Choose light mode, dark mode, or follow your computer's system preference. Your choice is saved in this browser.</p><div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12 }}>{([{id:'system',label:'System',desc:'Follow device',icon:<Monitor size={19}/>},{id:'light',label:'Light',desc:'Bright surfaces',icon:<Sun size={19}/>},{id:'dark',label:'Dark',desc:'Low-light surfaces',icon:<Moon size={19}/>} ] as const).map(option => <button key={option.id} type="button" onClick={() => setAppTheme(option.id)} aria-pressed={appTheme===option.id} className="btn" style={{ display:'flex', flexDirection:'column', alignItems:'flex-start', gap:8, padding:16, minHeight:104, background:appTheme===option.id?'var(--bg-elevated)':'var(--bg-input)', borderColor:appTheme===option.id?'var(--accent-primary)':'var(--border-subtle)', color:'var(--text-main)' }}>{option.icon}<strong>{option.label}</strong><span style={{fontSize:12,color:'var(--text-secondary)'}}>{option.desc}</span></button>)}</div><p role="status" style={{ color:'var(--text-muted)', fontSize:12, marginTop:14 }}>Current preference: {appTheme === 'system' ? 'System default' : appTheme === 'light' ? 'Light mode' : 'Dark mode'}.</p></section>}
 
       {/* Tab Content: Storage */}
       {activeTab === 'storage' && (
