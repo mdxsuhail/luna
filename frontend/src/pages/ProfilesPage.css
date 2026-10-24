@@ -664,3 +664,31 @@
     flex-direction: column;
   }
 }
+
+
+/* Follow the operating system appearance for profile and account screens. */
+@media (prefers-color-scheme: dark) {
+  .profiles-page { --profile-ink:#f3f4f6; --profile-muted:#a1a1aa; --profile-paper:#111318; --profile-line:rgba(255,255,255,.12); color:var(--profile-ink); background:radial-gradient(ellipse at 15% 0%,rgba(129,140,248,.12),transparent 45%),var(--profile-paper); }
+  .profiles-page-header h1 { color:#f3f4f6; }
+  .profiles-eyebrow,.profiles-intro { color:#a1a1aa; }
+  .profiles-demo-label { border-color:#3f414a; color:#c4c4cc; }
+  .profile-card--light { color:#f3f4f6; background:#20222a; border-color:#343640; }
+  .profile-card--light .profile-name-block p,.profile-card--light .profile-stat span:last-child { color:#a1a1aa; }
+  .profile-card--light .profile-contact-button { border-color:rgba(255,255,255,.16); }
+  .profiles-auth-layout { border-color:#343640; background:#1a1c23; box-shadow:0 22px 65px rgba(0,0,0,.24); }
+  .profiles-auth-panel,.profiles-account-card { color:#f3f4f6; background:#1a1c23; }
+  .profiles-auth-panel > h2,.profiles-account-top h2,.profiles-edit-form h3 { color:#f3f4f6; }
+  .profiles-auth-subtitle,.profiles-privacy-note,.profiles-password-note { color:#a1a1aa; }
+  .profiles-auth-tabs { background:#292b34; }
+  .profiles-auth-tabs button { color:#c4c4cc; }
+  .profiles-auth-tabs button.is-active { color:#171717; background:#f3f4f6; }
+  .profiles-auth-form label,.profiles-edit-form label { color:#d4d4d8; }
+  .profiles-auth-form input,.profiles-edit-form input,.profiles-edit-form textarea { color:#f3f4f6; background:#111318; border-color:#41434d; }
+  .profiles-auth-submit { color:#111318; background:#f3f4f6; border-color:#f3f4f6; }
+  .profiles-auth-submit:hover:not(:disabled) { background:#d4d4d8; }
+  .profiles-feedback { color:#e4e4e7; background:#292b34; border-color:#41434d; }
+  .profiles-account-card { border-color:#343640; }
+  .profiles-account-top { border-color:#343640; }
+  .profiles-account-top p { color:#a1a1aa; }
+  .profiles-footer { border-color:#343640; color:#a1a1aa; }
+}
