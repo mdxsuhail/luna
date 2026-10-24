@@ -6,7 +6,7 @@ export type PageType =
   | 'playlists'
   | 'profiles'
   | 'settings'
-  | 'device'
+  | 'developer'
   | 'about';
 
 export type ReaderTheme = 'charcoal' | 'sepia' | 'paper' | 'oled';
