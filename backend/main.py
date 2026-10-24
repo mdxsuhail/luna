@@ -276,7 +276,7 @@ def developer_login(payload: Dict[str, Any] = Body(...)) -> Dict[str, str]:
         raise HTTPException(status_code=400, detail="Enter the developer login code.")
     token = _developer_token(code)
     if token is None:
-        raise HTTPException(status_code=503, detail="Developer access is not configured. Set LUNA_DEV_CODE and LUNA_DEV_TOKEN_SECRET in the local backend environment.")
+        raise HTTPException(status_code=503, detail="Developer login is not configured on this computer, so the code cannot be checked yet. Create backend/.env with LUNA_DEV_CODE and LUNA_DEV_TOKEN_SECRET, then restart the backend.")
     if not token:
         raise HTTPException(status_code=401, detail="Developer code was not accepted.")
     return {"token": token, "expires_in": "3600"}
