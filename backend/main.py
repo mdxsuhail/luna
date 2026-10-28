@@ -29,6 +29,7 @@ from pydantic import BaseModel, Field
 import pypdf
 from auth import (init_auth_tables, create_user, verify_credentials, create_session, get_user_for_token, update_user_profile, delete_session)
 
+import database
 from database import (
     init_db,
     get_all_books,
@@ -399,7 +400,7 @@ def health_check() -> Dict[str, Any]:
     return {
         "status": "healthy",
         "app": "LUNA API",
-        "database_initialized": DB_PATH.exists(),
+        "database_initialized": database.DB_PATH.exists(),
     }
 
 
@@ -422,7 +423,7 @@ async def import_book(file: UploadFile = File(...)) -> Dict[str, Any]:
 
     ensure_directories()
     unique_filename = f"{uuid.uuid4().hex}.pdf"
-    destination_path = BOOKS_DIR / unique_filename
+    destination_path = database.BOOKS_DIR / unique_filename
     total_bytes_read = 0
     first_chunk = True
 
@@ -543,8 +544,8 @@ def resolve_registered_pdf(book_id: int) -> tuple[Dict[str, Any], Path]:
     filename_only = Path(stored_path).name
     if not filename_only.endswith(".pdf") or filename_only in {"", ".", ".."} or Path(filename_only).name != filename_only:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Invalid PDF storage record.")
-    target_file = (BOOKS_DIR / filename_only).resolve()
-    if not is_path_within_directory(target_file, BOOKS_DIR):
+    target_file = (database.BOOKS_DIR / filename_only).resolve()
+    if not is_path_within_directory(target_file, database.BOOKS_DIR):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Access denied: invalid file path.",
@@ -569,8 +570,8 @@ def delete_book(book_id: int) -> Dict[str, Any]:
     filename_only = Path(stored_path).name
     if not filename_only.lower().endswith(".pdf") or filename_only in {"", ".", ".."} or Path(filename_only).name != filename_only:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Invalid PDF storage record.")
-    target_file = (BOOKS_DIR / filename_only).resolve()
-    if not is_path_within_directory(target_file, BOOKS_DIR):
+    target_file = (database.BOOKS_DIR / filename_only).resolve()
+    if not is_path_within_directory(target_file, database.BOOKS_DIR):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied: invalid file path.")
     # Remove the DB row first; only unlink the file after the record is confirmed.
     deleted = delete_book_record(book_id)

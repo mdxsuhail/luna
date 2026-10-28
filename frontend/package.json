@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build && node -e \"const fs=require('fs'); if(fs.existsSync('dist')&&!fs.existsSync('frontend/dist')){fs.mkdirSync('frontend',{recursive:true});fs.cpSync('dist','frontend/dist',{recursive:true})}\"",
+    "build": "tsc && vite build",
     "preview": "vite preview"
   },
   "dependencies": {
