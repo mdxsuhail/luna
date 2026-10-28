@@ -212,7 +212,9 @@ export const DeveloperPage: React.FC<DeveloperPageProps> = ({ onLock }) => {
         <section style={cardStyle}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 9, color: 'var(--text-secondary)', fontSize: 12 }}><Server size={16} /> API service</div>
           <div style={{ fontSize: 22, fontWeight: 650, color: isBackendOnline ? 'var(--accent-emerald)' : 'var(--accent-amber)', marginTop: 10 }}>{isBackendOnline ? 'Reachable' : 'Unreachable'}</div>
-          <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 5, overflowWrap: 'anywhere' }}>{API_BASE_URL}</p>
+          <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 5, overflowWrap: 'anywhere' }}>
+            {API_BASE_URL || (typeof window !== 'undefined' ? `${window.location.origin} (same origin)` : 'Same origin')}
+          </p>
         </section>
         <section style={cardStyle}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 9, color: 'var(--text-secondary)', fontSize: 12 }}><Activity size={16} /> Diagnostic results</div>

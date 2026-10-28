@@ -4,15 +4,29 @@ Offline-first SQLite storage management.
 """
 
 from contextlib import contextmanager
+import os
 from pathlib import Path
 import sqlite3
+import sys
 from typing import Generator, List, Dict, Any, Optional
 
-# Resolve absolute path to the project root and storage directories
-# backend/database.py -> backend -> project_root -> local-data
+# Ensure backend directory is in sys.path
 BACKEND_DIR = Path(__file__).resolve().parent
+if str(BACKEND_DIR) not in sys.path:
+    sys.path.insert(0, str(BACKEND_DIR))
+
 PROJECT_ROOT = BACKEND_DIR.parent
-LOCAL_DATA_DIR = PROJECT_ROOT / "local-data"
+
+def _resolve_data_dir() -> Path:
+    env_dir = os.environ.get("LUNA_DATA_DIR")
+    if env_dir:
+        return Path(env_dir).resolve()
+    # In Vercel serverless environment, only /tmp is writable
+    if os.environ.get("VERCEL"):
+        return Path("/tmp/local-data").resolve()
+    return (PROJECT_ROOT / "local-data").resolve()
+
+LOCAL_DATA_DIR = _resolve_data_dir()
 DB_DIR = LOCAL_DATA_DIR / "database"
 DB_PATH = DB_DIR / "luna.db"
 BOOKS_DIR = LOCAL_DATA_DIR / "books"
@@ -21,21 +35,45 @@ AUDIO_DIR = LOCAL_DATA_DIR / "audio"
 
 def ensure_directories() -> None:
     """Ensure all required local-data parent directories exist."""
-    DB_DIR.mkdir(parents=True, exist_ok=True)
-    BOOKS_DIR.mkdir(parents=True, exist_ok=True)
-    AUDIO_DIR.mkdir(parents=True, exist_ok=True)
+    global LOCAL_DATA_DIR, DB_DIR, DB_PATH, BOOKS_DIR, AUDIO_DIR
+    try:
+        DB_DIR.mkdir(parents=True, exist_ok=True)
+        BOOKS_DIR.mkdir(parents=True, exist_ok=True)
+        AUDIO_DIR.mkdir(parents=True, exist_ok=True)
+    except OSError:
+        # Fallback to /tmp if current directory is read-only (such as Vercel / serverless runtime)
+        LOCAL_DATA_DIR = Path("/tmp/local-data").resolve()
+        DB_DIR = LOCAL_DATA_DIR / "database"
+        DB_PATH = DB_DIR / "luna.db"
+        BOOKS_DIR = LOCAL_DATA_DIR / "books"
+        AUDIO_DIR = LOCAL_DATA_DIR / "audio"
+        DB_DIR.mkdir(parents=True, exist_ok=True)
+        BOOKS_DIR.mkdir(parents=True, exist_ok=True)
+        AUDIO_DIR.mkdir(parents=True, exist_ok=True)
+
+
+_db_initialized = False
 
 
 @contextmanager
-def get_db_connection() -> Generator[sqlite3.Connection, None, None]:
+def get_db_connection(skip_init: bool = False) -> Generator[sqlite3.Connection, None, None]:
     """
     Context manager providing a SQLite database connection with row access
-    and guaranteed cleanup.
+    and guaranteed cleanup. Automatically initializes schema on first connection.
     """
+    global _db_initialized
     ensure_directories()
     conn = sqlite3.connect(str(DB_PATH))
     conn.row_factory = sqlite3.Row
     try:
+        if not skip_init and not _db_initialized:
+            _db_initialized = True
+            init_db()
+            try:
+                from auth import init_auth_tables
+                init_auth_tables()
+            except Exception:
+                pass
         yield conn
         conn.commit()
     except Exception:
@@ -50,8 +88,9 @@ def init_db() -> None:
     Initialize SQLite database and create the books table if not exists.
     Stores metadata for imported PDFs with local offline tracking.
     """
+    global _db_initialized
     ensure_directories()
-    with get_db_connection() as conn:
+    with get_db_connection(skip_init=True) as conn:
         cursor = conn.cursor()
         cursor.execute(
             """
@@ -73,6 +112,7 @@ def init_db() -> None:
             cursor.execute("ALTER TABLE books ADD COLUMN file_size_bytes INTEGER NOT NULL DEFAULT 0")
         # Imported PDFs use generated UUID filenames, so storage paths must be unique.
         cursor.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_books_stored_pdf_path_unique ON books(stored_pdf_path)")
+    _db_initialized = True
 
 
 def get_all_books() -> List[Dict[str, Any]]:

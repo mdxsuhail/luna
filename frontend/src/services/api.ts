@@ -5,7 +5,12 @@
 
 import { ApiBook, ApiHealthResponse, Book } from '../types';
 
-export const API_BASE_URL = 'http://127.0.0.1:8000';
+const envApiUrl = import.meta.env.VITE_API_BASE_URL;
+export const API_BASE_URL = (
+  typeof envApiUrl === 'string' && envApiUrl.trim() !== ''
+    ? envApiUrl.trim()
+    : (import.meta.env.DEV ? 'http://127.0.0.1:8000' : '')
+).replace(/\/+$/, '');
 
 const COVER_HUES = [
   '#1e293b', // Slate
@@ -76,8 +81,9 @@ export async function fetchHealth(): Promise<ApiHealthResponse> {
     if (err.name === 'AbortError') {
       throw new Error('Connection to LUNA backend timed out after 4 seconds.');
     }
+    const hostLabel = API_BASE_URL || 'current host';
     throw new Error(
-      `Unable to connect to LUNA backend at ${API_BASE_URL}. Ensure the FastAPI server is running.`
+      `Unable to connect to LUNA backend at ${hostLabel}. Ensure the server is online.`
     );
   }
 }
@@ -111,8 +117,9 @@ export async function fetchBooks(): Promise<ApiBook[]> {
     if (err.name === 'AbortError') {
       throw new Error('Request to /api/books timed out after 5 seconds.');
     }
+    const hostLabel = API_BASE_URL || 'current host';
     throw new Error(
-      `Could not retrieve books from SQLite. Backend at ${API_BASE_URL} is unreachable.`
+      `Could not retrieve books from database. Backend at ${hostLabel} is unreachable.`
     );
   }
 }
@@ -142,7 +149,9 @@ export async function uploadBookPdf(file: File, signal?: AbortSignal): Promise<A
         const errorJson = await response.json();
         if (errorJson && errorJson.detail) errorMessage = errorJson.detail;
       } catch {
-        // Ignore a non-JSON error response.
+        if (response.status === 413) {
+          errorMessage = 'Upload failed: PDF exceeds deployment payload limit (4.5 MB on Vercel Serverless). Please choose a smaller PDF.';
+        }
       }
       throw new Error(errorMessage);
     }

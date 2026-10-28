@@ -28,3 +28,8 @@ Thumbs.db
 
 # Logs
 *.log
+
+# Local backup scratch
+_backup_sync/
+_backup_sync_*/
+

@@ -1,6 +1,7 @@
 import React from 'react';
 import { useApp } from '../../context/AppContext';
 import { ShieldCheck, BookOpen, Plus, AlertCircle, RefreshCw } from 'lucide-react';
+import { API_BASE_URL } from '../../services/api';
 
 interface HeaderProps {
   onOpenAddBook?: () => void;
@@ -25,10 +26,16 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAddBook }) => {
         return 'Preferences & Storage';
       case 'developer':
         return 'Developer Mode';
+      case 'profiles':
+        return 'Reader Profile';
+      case 'about':
+        return 'About & System';
       default:
         return 'LUNA';
     }
   };
+
+  const hostDesc = API_BASE_URL || 'same origin';
 
   return (
     <header className="top-header">
@@ -39,7 +46,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAddBook }) => {
 
         {/* Backend Connectivity Status Indicator */}
         {isBackendOnline ? (
-          <div className="header-status-badge" title="FastAPI backend connected at http://127.0.0.1:8000">
+          <div className="header-status-badge" title={`FastAPI backend connected (${hostDesc})`}>
             <ShieldCheck size={13} />
             <span>SQLite Connected</span>
           </div>
@@ -53,7 +60,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAddBook }) => {
               cursor: 'pointer',
             }}
             onClick={() => refreshBooks()}
-            title="Click to retry connection to FastAPI backend (127.0.0.1:8000)"
+            title={`Click to retry connection to FastAPI backend (${hostDesc})`}
           >
             <AlertCircle size={13} />
             <span>Backend Offline (Retry)</span>

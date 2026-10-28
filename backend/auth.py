@@ -6,9 +6,15 @@ scrypt password hashing, and stores only hashes of opaque session tokens.
 from datetime import datetime, timedelta, timezone
 import hashlib
 import hmac
+from pathlib import Path
 import secrets
 import sqlite3
+import sys
 from typing import Any
+
+_backend_dir = Path(__file__).resolve().parent
+if str(_backend_dir) not in sys.path:
+    sys.path.insert(0, str(_backend_dir))
 
 from database import get_db_connection
 

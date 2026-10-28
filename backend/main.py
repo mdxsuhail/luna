@@ -13,9 +13,14 @@ import base64
 import binascii
 import json
 from pathlib import Path
+import sys
 from typing import List, Dict, Any
 import uuid
 import logging
+
+_backend_dir = Path(__file__).resolve().parent
+if str(_backend_dir) not in sys.path:
+    sys.path.insert(0, str(_backend_dir))
 
 from fastapi import FastAPI, UploadFile, File, HTTPException, Query, Request, status, Body
 from fastapi.middleware.cors import CORSMiddleware
@@ -83,21 +88,67 @@ def extract_page_text(reader: pypdf.PdfReader, page_number: int) -> str:
 
 
 def is_allowed_local_host(host: str | None) -> bool:
-    """Allow only expected loopback Host values and the default LUNA API port."""
+    """Allow expected loopback Host values, or deployment hosts when configured or running on Vercel."""
     if not host:
         return False
     normalized = host.strip().lower()
-    return normalized in {
+    if normalized in {
         "127.0.0.1",
         "127.0.0.1:8000",
         "localhost",
         "localhost:8000",
-    }
+    }:
+        return True
+
+    # Cloud / Vercel runtime overrides
+    if os.environ.get("VERCEL") or os.environ.get("LUNA_ALLOW_ALL_HOSTS") == "1":
+        host_without_port = normalized.split(":")[0]
+        if host_without_port.endswith(".vercel.app") or host_without_port == "vercel.app":
+            return True
+        vercel_url = os.environ.get("VERCEL_URL", "").strip().lower()
+        if vercel_url and (normalized == vercel_url or host_without_port == vercel_url):
+            return True
+        allowed_hosts_env = os.environ.get("ALLOWED_HOSTS", "")
+        if allowed_hosts_env:
+            allowed_set = {h.strip().lower() for h in allowed_hosts_env.split(",") if h.strip()}
+            if normalized in allowed_set or host_without_port in allowed_set:
+                return True
+        if os.environ.get("VERCEL"):
+            return True
+
+    allowed_hosts = os.environ.get("ALLOWED_HOSTS")
+    if allowed_hosts:
+        allowed_set = {h.strip().lower() for h in allowed_hosts.split(",") if h.strip()}
+        if normalized in allowed_set or normalized.split(":")[0] in allowed_set:
+            return True
+
+    return False
 
 
 def is_allowed_origin(origin: str | None) -> bool:
-    """Check the exact browser origins used by the local Vite frontend."""
-    return origin in {"http://localhost:5173", "http://127.0.0.1:5173"}
+    """Check browser origins: local Vite frontend by default, plus Vercel / configured origins."""
+    if not origin:
+        return False
+    if origin in {"http://localhost:5173", "http://127.0.0.1:5173"}:
+        return True
+
+    if os.environ.get("VERCEL") or os.environ.get("LUNA_ALLOW_ALL_HOSTS") == "1":
+        if origin.startswith("https://") and (origin.endswith(".vercel.app") or origin == "https://vercel.app"):
+            return True
+        allowed_env = os.environ.get("ALLOWED_ORIGINS", "")
+        if allowed_env:
+            allowed_list = [o.strip() for o in allowed_env.split(",") if o.strip()]
+            if origin in allowed_list:
+                return True
+        if os.environ.get("VERCEL"):
+            return True
+
+    allowed_origins = os.environ.get("ALLOWED_ORIGINS")
+    if allowed_origins:
+        allowed_list = [o.strip() for o in allowed_origins.split(",") if o.strip()]
+        return origin in allowed_list
+
+    return False
 
 
 @asynccontextmanager
@@ -116,11 +167,21 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-origins = ["http://localhost:5173", "http://127.0.0.1:5173"]
+def get_cors_origins() -> List[str]:
+    base = ["http://localhost:5173", "http://127.0.0.1:5173"]
+    if os.environ.get("VERCEL") or os.environ.get("LUNA_ALLOW_ALL_HOSTS") == "1":
+        base.append("*")
+    allowed_env = os.environ.get("ALLOWED_ORIGINS", "")
+    if allowed_env:
+        base.extend([o.strip() for o in allowed_env.split(",") if o.strip()])
+    return base
+
+origins = get_cors_origins()
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
+    allow_origin_regex=r"^https://.*\.vercel\.app$",
     allow_credentials=False,
     allow_methods=["GET", "HEAD", "POST", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["Accept", "Content-Type", "Authorization"],
@@ -316,6 +377,20 @@ def developer_verify(request: Request) -> Dict[str, bool]:
     if not _is_valid_developer_token(token):
         raise HTTPException(status_code=401, detail="Developer login expired or invalid. Please sign in again.")
     return {"authenticated": True}
+
+
+@app.get("/")
+@app.get("/api")
+@app.get("/api/")
+def api_root() -> Dict[str, Any]:
+    """Root discovery endpoint providing service status and entry routes."""
+    return {
+        "app": "LUNA API",
+        "status": "healthy",
+        "documentation": "/docs",
+        "health": "/api/health",
+        "books": "/api/books",
+    }
 
 
 @app.get("/api/health")

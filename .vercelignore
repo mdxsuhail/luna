@@ -1,0 +1,7 @@
+local-data/
+_backup_sync/
+_backup_sync_1543/
+backend/.venv/
+backend/__pycache__/
+backend/tests/__pycache__/
+frontend/node_modules/

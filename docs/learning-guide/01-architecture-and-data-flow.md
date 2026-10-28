@@ -54,7 +54,7 @@ graph LR
         Uvicorn --> FastAPIApp
     end
 
-    subgraph Storage ["Local Filesystem ('local-data/')"]
+    subgraph LocalStorage["Local Storage (local-data/)"]
         SQLiteDB[(SQLite Database<br/>database/luna.db)]
         PDFDir[Local Book Storage<br/>books/*.pdf]
         AudioDir[Local Audio Storage<br/>audio/]
