@@ -78,9 +78,36 @@ def ensure_bucket() -> None:
     response = httpx.post(f"{url}/storage/v1/bucket", headers=headers(),
                           json={"id": BUCKET, "name": BUCKET, "public": False, "file_size_limit": MAX_UPLOAD},
                           timeout=20)
-    if response.status_code not in (200, 201, 409):
+    if response.status_code in (200, 201):
+        return
+
+    # Supabase may report an existing bucket as HTTP 400 with an embedded
+    # statusCode of 409 (BucketAlreadyExists). Verify the existing bucket
+    # rather than treating this idempotent startup condition as fatal.
+    duplicate = response.status_code == 409
+    if response.status_code == 400:
+        try:
+            duplicate = response.json().get("code") == "BucketAlreadyExists"
+        except (ValueError, AttributeError):
+            duplicate = False
+
+    if duplicate:
+        existing = httpx.get(f"{url}/storage/v1/bucket/{BUCKET}", headers=headers(), timeout=20)
+        if existing.status_code == 200:
+            try:
+                bucket_info = existing.json()
+            except ValueError:
+                bucket_info = {}
+            if bucket_info.get("public") is False:
+                logger.info("Using existing private Supabase Storage bucket '%s'.", BUCKET)
+                return
+            logger.error("Existing storage bucket '%s' is not confirmed private: %s", BUCKET, existing.text[:500])
+        else:
+            logger.error("Could not verify existing storage bucket (%s): %s", existing.status_code, existing.text[:500])
+    else:
         logger.error("Storage bucket setup failed (%s): %s", response.status_code, response.text[:500])
-        raise RuntimeError("Could not initialize private PDF storage bucket.")
+
+    raise RuntimeError("Could not initialize private PDF storage bucket.")
 
 
 def now_iso() -> str:
