@@ -120,7 +120,7 @@ jobs:
       issues: write
     steps:
       - name: Create or update a deduplicated issue with failing checks
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         with:
           script: |
             const { owner, repo } = context.repo;
