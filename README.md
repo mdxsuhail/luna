@@ -1,52 +1,41 @@
 # LUNA — Offline-First PDF Reader & Browser Narration
 
-LUNA is a local-first reading application for importing and organizing PDF books, opening them in a reader, and using browser text-to-speech to listen to selectable PDF text. It is a software project exploring frontend/backend integration, local file handling, and a small SQLite-backed library.
+LUNA is a local reading app for importing and organizing PDF books, opening them in a browser viewer, and listening to selectable text using browser text-to-speech. It explores frontend/backend integration, local file handling, and SQLite persistence.
 
-> **Status:** Student project in active development. The README distinguishes working features from partial and planned features; see the project docs and code for the current details.
+> **Status:** Student project under active development. Working, partial and planned features are identified separately.
 
 ## Highlights
-
-- PDF import with file-size and PDF-header checks.
-- Extracts document title and page count.
-- Stores book metadata in local SQLite.
-- Local FastAPI backend with book-list, import, text extraction and PDF-stream endpoints.
-- React frontend built with Vite and TypeScript.
-- Library search and category filtering.
-- Browser-native PDF viewing.
-- Browser Speech Synthesis narration for selectable PDF text (not saved audio files).
-- Local developer diagnostics and Windows startup script.
+- PDF import with file-size and PDF-header validation
+- Document title and page-count extraction
+- Local SQLite library records
+- FastAPI backend with React + TypeScript frontend
+- Library search/filter interface
+- Browser-native PDF viewer
+- Page-level PDF text extraction endpoint
+- Browser Speech Synthesis narration (does not create audio files)
+- Local developer diagnostics and Windows launcher
 
 ## Architecture
-
 ```mermaid
 flowchart LR
-  U[User] --> F[React + TypeScript UI]
-  F -->|HTTP API| B[FastAPI]
-  B --> P[pypdf]
-  B --> D[(SQLite)]
-  B --> S[Local PDF storage]
-  F -->|Browser Speech Synthesis| TTS[Browser / OS voices]
+ U[User] --> UI[React / TypeScript]
+ UI -->|HTTP| API[FastAPI]
+ API --> PDF[pypdf]
+ API --> DB[(SQLite)]
+ API --> FS[Local PDF storage]
+ UI --> TTS[Browser Speech Synthesis]
 ```
 
-The app is designed for local use. The optional hardware companion concept is not required to run the software.
-
-## Stack
-
-| Layer | Technologies |
-|---|---|
-| Frontend | React, TypeScript, Vite |
-| Backend | Python, FastAPI, Uvicorn |
-| PDF | pypdf |
-| Data | SQLite |
-| Narration | Browser Speech Synthesis |
-| Development | Git, npm, Python virtual environment |
+## Technology
+Frontend: React, TypeScript, Vite  
+Backend: Python, FastAPI, Uvicorn  
+PDF: pypdf  
+Database: SQLite  
+Narration: Browser Speech Synthesis
 
 ## Run locally (Windows)
 
-### 1. Backend
-
-From the project root, open PowerShell:
-
+Backend terminal:
 ```powershell
 cd backend
 python -m venv .venv
@@ -55,69 +44,50 @@ pip install -r requirements.txt
 python -m uvicorn main:app --reload --host 127.0.0.1 --port 8000
 ```
 
-### 2. Frontend
-
-Open another terminal:
-
+Frontend in a second terminal:
 ```powershell
 cd frontend
 npm install
 npm run dev
 ```
+Open the localhost URL Vite prints (usually port 5173). Backend API docs are at `http://127.0.0.1:8000/docs`.
 
-Open the local address printed by Vite (typically `http://localhost:5173`). The frontend expects the backend to be running on port 8000.
-
-## API endpoints (current backend)
-
+## API overview
 | Method | Endpoint | Purpose |
 |---|---|---|
-| GET | `/api/health` | Backend status |
-| GET | `/api/books` | List imported books |
-| POST | `/api/books/import` | Import a PDF |
-| GET | `/api/books/{id}/pdf` | Stream a stored PDF |
-| GET | `/api/books/{id}/text?page=1` | Extract text from one page |
-
-Use the FastAPI interactive docs at `http://127.0.0.1:8000/docs` when the backend is running.
+| GET | `/api/health` | Health check |
+| GET | `/api/books` | List books |
+| POST | `/api/books/import` | Import PDF |
+| GET | `/api/books/{id}/pdf` | Stream PDF |
+| GET | `/api/books/{id}/text?page=1` | Extract page text |
 
 ## Feature status
-
 | Feature | Status |
 |---|---|
-| PDF import and metadata | Implemented in backend |
-| SQLite library records | Implemented |
-| PDF stream endpoint | Implemented |
-| Library UI/search/filter | Implemented or present; verify in current build |
-| Browser PDF reader | Basic/native viewer |
-| Page text extraction endpoint | Implemented; not full-document indexing |
-| Browser text-to-speech | Basic; requires selectable text and supported browser voices |
-| Playlist persistence | In progress/client state; not claimed as durable backend feature |
-| OCR, local TTS engine, saved audio files | Planned |
+| PDF import, metadata extraction, SQLite record | Backend implemented |
+| PDF streaming | Endpoint implemented |
+| Library search/filter | UI exists; verify current build |
+| PDF reader | Basic browser-native viewer |
+| Page text extraction | Endpoint implemented; not full-book indexing |
+| Narration | Browser voices; selectable text |
+| Playlists / persistent reading progress | Partial / verify implementation |
+| OCR, offline TTS engine, generated audio files | Planned |
 
-## Repository map
-
-- `backend/` — FastAPI routes, SQLite database code, backend dependencies
+## Repository layout
+- `backend/` — FastAPI endpoints, database logic and dependencies
 - `frontend/` — React/TypeScript UI
-- `docs/` — learning notes and project documentation
-- `start-luna.bat` — Windows launcher, if present
-- `local-data/` — runtime library storage (should not be committed)
+- `docs/` — learning guide and project notes
+- `local-data/` — local library and database runtime files (keep user books out of git)
 
 ## Limitations
+- Designed for local use, not a production multi-user service.
+- Narration relies on browser/OS voices and does not export MP3/WAV.
+- Scanned PDFs need OCR, not currently included.
+- Native PDF viewer controls can vary between browsers.
+- Persistence of progress/playlists should be confirmed in the current implementation.
+- Optional ESP32 hardware is a separate idea; not required to run the software.
 
-- Designed as a local desktop-style app, not a production-hosted multi-user service.
-- Narration uses the browser's speech engine; it does not generate downloadable audiobook files.
-- Scanned PDFs need OCR, which is not currently included.
-- Page navigation and PDF viewing behavior depend on the browser's native PDF viewer.
-- Reading progress and playlist features may not be persisted across sessions; verify current implementation before relying on them.
-- Optional ESP32 companion hardware is a separate future experiment and not a requirement for LUNA.
+## Learning focus
+Local-first design · REST APIs · file validation/storage · SQLite · React state · PDF processing · integration debugging.
 
-## What I'm learning from this project
-
-Local-first application architecture · REST API design · file validation and storage · SQLite persistence · React state · PDF processing · integration debugging · documentation.
-
-## Contributing / feedback
-
-Issues, suggestions, and improvements are welcome. If you try the project, please report bugs or usability feedback through GitHub Issues.
-
----
-
-**Author:** Mohammed Suhail · Electronics & Communication Engineering student
+**Author:** Mohammed Suhail · ECE student
